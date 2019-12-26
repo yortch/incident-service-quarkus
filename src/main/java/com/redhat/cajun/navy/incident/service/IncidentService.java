@@ -28,8 +28,6 @@ public class IncidentService {
 
     @Transactional
     public Incident create(Incident incident) {
-        incident.setId(UUID.randomUUID().toString());
-        incident.setTimestamp(System.currentTimeMillis());
         com.redhat.cajun.navy.incident.entity.Incident created = incidentDao.create(toEntity(incident));
 
         return fromEntity(created);
@@ -89,15 +87,18 @@ public class IncidentService {
 
     private com.redhat.cajun.navy.incident.entity.Incident toEntity(Incident incident) {
 
+        String incidentId = UUID.randomUUID().toString();
+        long reportedTimestamp = System.currentTimeMillis();
+
         return new com.redhat.cajun.navy.incident.entity.Incident.Builder()
-                        .incidentId(incident.getId())
+                        .incidentId(incidentId)
                         .latitude(incident.getLat())
                         .longitude(incident.getLon())
                         .medicalNeeded(incident.isMedicalNeeded())
                         .numberOfPeople(incident.getNumberOfPeople())
                         .victimName(incident.getVictimName())
                         .victimPhoneNumber(incident.getVictimPhoneNumber())
-                        .reportedTime(incident.getTimestamp())
+                        .reportedTime(reportedTimestamp)
                         .status(IncidentStatus.REPORTED.name())
                         .build();
     }

@@ -18,6 +18,9 @@ import com.redhat.cajun.navy.incident.message.UpdateIncidentCommandMessageAdapte
 import com.redhat.cajun.navy.incident.model.Incident;
 import com.redhat.cajun.navy.incident.service.IncidentService;
 import io.smallrye.reactive.messaging.kafka.ReceivedKafkaMessage;
+import io.vertx.axle.core.Promise;
+import io.vertx.axle.core.Vertx;
+import io.vertx.core.Handler;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.slf4j.Logger;
@@ -33,6 +36,9 @@ public class IncidentCommandMessageSource {
 
     @Inject
     IncidentService incidentService;
+
+    @Inject
+    Vertx vertx;
 
     @Incoming("incident-command")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
@@ -56,7 +62,10 @@ public class IncidentCommandMessageSource {
         Incident incident = message.getBody().getIncident();
 
         log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + incident.getId() + "'");
-        incidentService.updateIncident(incident);
+        vertx.executeBlocking((Handler<Promise<Void>>) event -> {
+            incidentService.updateIncident(incident);
+            event.complete();
+        });
     }
 
     private Optional<String> acceptMessageType(String messageAsJson) {

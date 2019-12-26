@@ -26,7 +26,7 @@ public class IncidentsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public CompletionStage<Response> incidents() {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidents");
-        return bus.<JsonObject>send("incident-service", new JsonObject(), options)
+        return bus.<JsonObject>request("incident-service", new JsonObject(), options)
             .thenApply(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
     }
 
@@ -35,7 +35,7 @@ public class IncidentsResource {
     @Consumes(MediaType.APPLICATION_JSON)
     public CompletionStage<Response> createIncident(String incident) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "createIncident");
-        return bus.<JsonObject>send("incident-service", new JsonObject(incident), options)
+        return bus.<JsonObject>request("incident-service", new JsonObject(incident), options)
                 .thenApply(msg -> Response.status(200).build());
     }
 
@@ -44,7 +44,7 @@ public class IncidentsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public CompletionStage<Response> incidentsByStatus(@PathParam("status") String status) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidentsByStatus");
-        return bus.<JsonObject>send("incident-service", new JsonObject().put("status", status), options)
+        return bus.<JsonObject>request("incident-service", new JsonObject().put("status", status), options)
                 .thenApply(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
     }
 
@@ -53,7 +53,7 @@ public class IncidentsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public CompletionStage<Response> incidentById(@PathParam("id") String incidentId) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidentById");
-        return bus.<JsonObject>send("incident-service",  new JsonObject().put("incidentId", incidentId), options)
+        return bus.<JsonObject>request("incident-service",  new JsonObject().put("incidentId", incidentId), options)
                 .thenApply(msg -> {
                     JsonObject incident = msg.body().getJsonObject("incident");
                     if (incident == null) {
@@ -69,7 +69,7 @@ public class IncidentsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public CompletionStage<Response> incidentsByName(@PathParam("name") String name) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidentsByName");
-        return bus.<JsonObject>send("incident-service", new JsonObject().put("name", name), options)
+        return bus.<JsonObject>request("incident-service", new JsonObject().put("name", name), options)
                 .thenApply(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
     }
 
@@ -77,7 +77,7 @@ public class IncidentsResource {
     @Path("/reset")
     public CompletionStage<Response> reset() {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "reset");
-        return bus.<JsonObject>send("incident-service", new JsonObject(), options)
+        return bus.<JsonObject>request("incident-service", new JsonObject(), options)
                 .thenApply(msg -> Response.ok().build());
     }
 

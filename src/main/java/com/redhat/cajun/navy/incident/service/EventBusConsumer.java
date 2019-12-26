@@ -35,8 +35,6 @@ public class EventBusConsumer {
 
     private FlowableProcessor<Incident> processor = UnicastProcessor.<Incident>create().toSerialized();
 
-    private Object lock = new Object();
-
     private IncidentCodec codec = new IncidentCodec();
 
     @ConsumeEvent(value = "incident-service", blocking = true)
