@@ -27,56 +27,28 @@ public class Incident {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public String getLat() {
         return lat;
-    }
-
-    public void setLat(String lat) {
-        this.lat = lat;
     }
 
     public String getLon() {
         return lon;
     }
 
-    public void setLon(String lon) {
-        this.lon = lon;
-    }
-
     public Integer getNumberOfPeople() {
         return numberOfPeople;
-    }
-
-    public void setNumberOfPeople(Integer numberOfPeople) {
-        this.numberOfPeople = numberOfPeople;
     }
 
     public Boolean isMedicalNeeded() {
         return medicalNeeded;
     }
 
-    public void setMedicalNeeded(Boolean medicalNeeded) {
-        this.medicalNeeded = medicalNeeded;
-    }
-
     public String getVictimName() {
         return victimName;
     }
 
-    public void setVictimName(String victimName) {
-        this.victimName = victimName;
-    }
-
     public String getVictimPhoneNumber() {
         return victimPhoneNumber;
-    }
-
-    public void setVictimPhoneNumber(String victimPhoneNumber) {
-        this.victimPhoneNumber = victimPhoneNumber;
     }
 
     public long getTimestamp() {
@@ -89,10 +61,6 @@ public class Incident {
 
     public String getStatus() {
         return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public static class Builder {
