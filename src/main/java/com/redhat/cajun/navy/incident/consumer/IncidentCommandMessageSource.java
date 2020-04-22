@@ -17,7 +17,7 @@ import com.redhat.cajun.navy.incident.message.UpdateIncidentCommand;
 import com.redhat.cajun.navy.incident.message.UpdateIncidentCommandMessageAdapter;
 import com.redhat.cajun.navy.incident.model.Incident;
 import com.redhat.cajun.navy.incident.service.IncidentService;
-import io.smallrye.reactive.messaging.kafka.ReceivedKafkaMessage;
+import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.vertx.axle.core.Promise;
 import io.vertx.axle.core.Vertx;
 import io.vertx.core.Handler;
@@ -42,7 +42,7 @@ public class IncidentCommandMessageSource {
 
     @Incoming("incident-command")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public CompletionStage<ReceivedKafkaMessage<String, String>> processMessage(ReceivedKafkaMessage<String, String> message) {
+    public CompletionStage<IncomingKafkaRecord<String, String>> processMessage(IncomingKafkaRecord<String, String> message) {
         try {
             acceptMessageType(message.getPayload()).ifPresent(m -> processUpdateIncidentCommand(message.getPayload()));
         } catch (Exception e) {

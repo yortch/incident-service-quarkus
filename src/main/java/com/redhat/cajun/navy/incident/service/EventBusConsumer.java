@@ -15,7 +15,7 @@ import com.redhat.cajun.navy.incident.model.Incident;
 import io.quarkus.vertx.ConsumeEvent;
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;
-import io.smallrye.reactive.messaging.kafka.KafkaMessage;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.eventbus.Message;
@@ -132,7 +132,7 @@ public class EventBusConsumer {
         String json = jsonb.toJson(message);
         log.debug("Message: " + json);
         CompletableFuture<org.eclipse.microprofile.reactive.messaging.Message<String>> future = new CompletableFuture<>();
-        KafkaMessage<String, String> kafkaMessage = KafkaMessage.of(incident.getId(), json);
+        KafkaRecord<String, String> kafkaMessage = KafkaRecord.of(incident.getId(), json);
         future.complete(kafkaMessage);
         return future;
     }
