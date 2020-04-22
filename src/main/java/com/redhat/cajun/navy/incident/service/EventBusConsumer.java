@@ -126,6 +126,9 @@ public class EventBusConsumer {
                         .medicalNeeded(incident.isMedicalNeeded())
                         .numberOfPeople(incident.getNumberOfPeople())
                         .timestamp(incident.getTimestamp())
+                        .victimName(incident.getVictimName())
+                        .victimPhoneNumber(incident.getVictimPhoneNumber())
+                        .status(incident.getStatus())    
                         .build())
                 .build();
         Jsonb jsonb = JsonbBuilder.create();
