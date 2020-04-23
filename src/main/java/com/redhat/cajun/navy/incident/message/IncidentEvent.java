@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
-public class IncidentReportedEvent {
+public class IncidentEvent {
 
     private String id;
 
@@ -63,10 +63,10 @@ public class IncidentReportedEvent {
 
     public static class Builder {
 
-        private IncidentReportedEvent ire;
+        private IncidentEvent ire;
 
         public Builder(String id) {
-            ire = new IncidentReportedEvent();
+            ire = new IncidentEvent();
             ire.id = id;
         }
 
@@ -109,8 +109,8 @@ public class IncidentReportedEvent {
             ire.status = status;
             return this;
         }
-        
-        public IncidentReportedEvent build() {
+
+        public IncidentEvent build() {
             return ire;
         }
     }

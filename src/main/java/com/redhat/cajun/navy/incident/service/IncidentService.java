@@ -34,18 +34,20 @@ public class IncidentService {
     }
 
     @Transactional
-    public void updateIncident(Incident incident) {
+    public Incident updateIncident(Incident incident) {
         com.redhat.cajun.navy.incident.entity.Incident current = incidentDao.findByIncidentId(incident.getId());
         if (current == null) {
             log.warn("Incident with id '" + incident.getId() + "' not found in the database");
-            return;
+            return null;
         }
         com.redhat.cajun.navy.incident.entity.Incident toUpdate = toEntity(incident, current);
+        com.redhat.cajun.navy.incident.entity.Incident merged = null;
         try {
-            incidentDao.merge(toUpdate);
+            merged = incidentDao.merge(toUpdate);
         } catch (Exception e) {
             log.warn("Exception '" + e.getClass() + "' when updating Incident with id '" + incident.getId() + "'. Incident record is not updated.");
         }
+        return fromEntity(merged);
     }
 
     @Transactional
