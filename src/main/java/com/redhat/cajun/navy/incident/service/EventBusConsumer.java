@@ -12,6 +12,7 @@ import javax.json.bind.JsonbBuilder;
 
 import com.redhat.cajun.navy.incident.message.IncidentEvent;
 import com.redhat.cajun.navy.incident.model.Incident;
+import com.redhat.cajun.navy.incident.model.IncidentCodec;
 import io.quarkus.vertx.ConsumeEvent;
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;

@@ -1,6 +1,5 @@
-package com.redhat.cajun.navy.incident.service;
+package com.redhat.cajun.navy.incident.model;
 
-import com.redhat.cajun.navy.incident.model.Incident;
 import io.vertx.core.json.JsonObject;
 
 public class IncidentCodec {
@@ -19,8 +18,8 @@ public class IncidentCodec {
 
     public Incident fromJsonObject(JsonObject jsonObject) {
         return new Incident.Builder(jsonObject.getString("id"))
-                .lat(jsonObject.getDouble("lat").toString())
-                .lon(jsonObject.getDouble("lon").toString())
+                .lat(jsonObject.getDouble("lat") != null ? jsonObject.getDouble("lat").toString() : null)
+                .lon(jsonObject.getDouble("lon") != null ? jsonObject.getDouble("lon").toString() : null)
                 .medicalNeeded(jsonObject.getBoolean("medicalNeeded"))
                 .numberOfPeople(jsonObject.getInteger("numberOfPeople"))
                 .victimName(jsonObject.getString("victimName"))

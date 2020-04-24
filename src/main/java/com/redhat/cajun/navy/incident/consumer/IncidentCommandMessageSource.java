@@ -1,6 +1,5 @@
 package com.redhat.cajun.navy.incident.consumer;
 
-import java.io.StringReader;
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Optional;
@@ -8,17 +7,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.Json;
-import javax.json.JsonObject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
-import javax.json.bind.JsonbConfig;
 
 import com.redhat.cajun.navy.incident.message.IncidentEvent;
 import com.redhat.cajun.navy.incident.message.Message;
-import com.redhat.cajun.navy.incident.message.UpdateIncidentCommand;
-import com.redhat.cajun.navy.incident.message.UpdateIncidentCommandMessageAdapter;
 import com.redhat.cajun.navy.incident.model.Incident;
+import com.redhat.cajun.navy.incident.model.IncidentCodec;
 import com.redhat.cajun.navy.incident.service.IncidentService;
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;
@@ -27,6 +22,7 @@ import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.vertx.axle.core.Promise;
 import io.vertx.axle.core.Vertx;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -55,7 +51,7 @@ public class IncidentCommandMessageSource {
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
     public CompletionStage<IncomingKafkaRecord<String, String>> processMessage(IncomingKafkaRecord<String, String> message) {
         try {
-            acceptMessageType(message.getPayload()).ifPresent(m -> processUpdateIncidentCommand(message.getPayload()));
+            acceptMessageType(message.getPayload()).ifPresent(this::processUpdateIncidentCommand);
         } catch (Exception e) {
             log.error("Error processing msg " + message.getPayload(), e);
         }
@@ -63,14 +59,10 @@ public class IncidentCommandMessageSource {
     }
 
     @SuppressWarnings("unchecked")
-    private void processUpdateIncidentCommand(String messageAsJson) {
+    private void processUpdateIncidentCommand(JsonObject json) {
 
-        Message<UpdateIncidentCommand> message;
-
-        JsonbConfig config = new JsonbConfig().withAdapters(new UpdateIncidentCommandMessageAdapter());
-        Jsonb jsonb = JsonbBuilder.newBuilder().withConfig(config).build();
-        message = jsonb.fromJson(messageAsJson, Message.class);
-        Incident incident = message.getBody().getIncident();
+        JsonObject body = json.getJsonObject("body").getJsonObject("incident");
+        Incident incident = new IncidentCodec().fromJsonObject(body);
 
         log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + incident.getId() + "'");
         vertx.executeBlocking((Handler<Promise<Void>>) event -> {
@@ -80,12 +72,14 @@ public class IncidentCommandMessageSource {
         });
     }
 
-    private Optional<String> acceptMessageType(String messageAsJson) {
+    private Optional<JsonObject> acceptMessageType(String messageAsJson) {
         try {
-            JsonObject jsonReader = Json.createReader(new StringReader(messageAsJson)).readObject();
-            String messageType = jsonReader.getString("messageType");
+            JsonObject json = new JsonObject(messageAsJson);
+            String messageType = json.getString("messageType");
             if (Arrays.asList(ACCEPTED_MESSAGE_TYPES).contains(messageType)) {
-                return Optional.of(messageType);
+                if (json.containsKey("body") && json.getJsonObject("body").containsKey("incident")) {
+                    return Optional.of(json);
+                }
             }
             log.debug("Message with type '" + messageType + "' is ignored");
         } catch (Exception e) {
