@@ -1,5 +1,6 @@
 package com.redhat.cajun.navy.incident.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,14 +41,28 @@ public class IncidentService {
             log.warn("Incident with id '" + incident.getId() + "' not found in the database");
             return null;
         }
-        com.redhat.cajun.navy.incident.entity.Incident toUpdate = toEntity(incident, current);
-        com.redhat.cajun.navy.incident.entity.Incident merged = null;
-        try {
-            merged = incidentDao.merge(toUpdate);
-        } catch (Exception e) {
-            log.warn("Exception '" + e.getClass() + "' when updating Incident with id '" + incident.getId() + "'. Incident record is not updated.");
+        if (incident.getLat() != null && !incident.getLat().equals(current.getLatitude())) {
+            current.setLatitude(incident.getLat());
         }
-        return fromEntity(merged);
+        if (incident.getLon() != null && !incident.getLon().equals(current.getLatitude())) {
+            current.setLongitude(incident.getLon());
+        }
+        if (incident.getNumberOfPeople() != null && !incident.getNumberOfPeople().equals(current.getNumberOfPeople())) {
+            current.setNumberOfPeople(incident.getNumberOfPeople());
+        }
+        if (incident.isMedicalNeeded() != null && !incident.isMedicalNeeded().equals(current.isMedicalNeeded())) {
+            current.setMedicalNeeded(incident.isMedicalNeeded());
+        }
+        if (incident.getVictimName() != null && !incident.getVictimName().equals(current.getVictimName())) {
+            current.setVictimName(incident.getVictimName());
+        }
+        if (incident.getVictimPhoneNumber() != null && !incident.getVictimPhoneNumber().equals(current.getVictimPhoneNumber())) {
+            current.setVictimPhoneNumber(incident.getVictimPhoneNumber());
+        }
+        if (incident.getStatus() != null && !incident.getStatus().equals(current.getStatus())) {
+            current.setStatus(incident.getStatus());
+        }
+        return fromEntity(current);
     }
 
     @Transactional
@@ -92,35 +107,17 @@ public class IncidentService {
         String incidentId = UUID.randomUUID().toString();
         long reportedTimestamp = System.currentTimeMillis();
 
-        return new com.redhat.cajun.navy.incident.entity.Incident.Builder()
-                        .incidentId(incidentId)
-                        .latitude(incident.getLat())
-                        .longitude(incident.getLon())
-                        .medicalNeeded(incident.isMedicalNeeded())
-                        .numberOfPeople(incident.getNumberOfPeople())
-                        .victimName(incident.getVictimName())
-                        .victimPhoneNumber(incident.getVictimPhoneNumber())
-                        .reportedTime(reportedTimestamp)
-                        .status(IncidentStatus.REPORTED.name())
-                        .build();
-    }
-
-    private com.redhat.cajun.navy.incident.entity.Incident toEntity(Incident incident, com.redhat.cajun.navy.incident.entity.Incident current) {
-
-        if (incident == null) {
-            return null;
-        }
-        return new com.redhat.cajun.navy.incident.entity.Incident.Builder(current.getId(), current.getVersion())
-                .incidentId(incident.getId())
-                .latitude(incident.getLat() == null? current.getLatitude() : incident.getLat())
-                .longitude(incident.getLon() == null? current.getLongitude() : incident.getLon())
-                .medicalNeeded(incident.isMedicalNeeded() == null? current.isMedicalNeeded() : incident.isMedicalNeeded())
-                .numberOfPeople(incident.getNumberOfPeople() == null ? current.getNumberOfPeople() : incident.getNumberOfPeople())
-                .victimName(incident.getVictimName() == null? current.getVictimName() : incident.getVictimName())
-                .victimPhoneNumber(incident.getVictimPhoneNumber() == null? current.getVictimPhoneNumber() : incident.getVictimPhoneNumber())
-                .status(incident.getStatus() == null? current.getStatus() : incident.getStatus())
-                .reportedTime(current.getTimestamp())
-                .build();
+        com.redhat.cajun.navy.incident.entity.Incident entity = new com.redhat.cajun.navy.incident.entity.Incident();
+        entity.setIncidentId(incidentId);
+        entity.setLatitude(incident.getLat());
+        entity.setLongitude(incident.getLon());
+        entity.setMedicalNeeded(incident.isMedicalNeeded());
+        entity.setNumberOfPeople(incident.getNumberOfPeople());
+        entity.setVictimName(incident.getVictimName());
+        entity.setVictimPhoneNumber(incident.getVictimPhoneNumber());
+        entity.setReportedTime(Instant.ofEpochMilli(reportedTimestamp));
+        entity.setStatus(IncidentStatus.REPORTED.name());
+        return entity;
     }
 
 }
