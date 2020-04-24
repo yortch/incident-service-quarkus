@@ -19,10 +19,10 @@ import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.vertx.axle.core.Promise;
-import io.vertx.axle.core.Vertx;
+import io.vertx.mutiny.core.Promise;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
+import io.vertx.mutiny.core.Vertx;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -66,10 +66,11 @@ public class IncidentCommandMessageSource {
 
         log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + incident.getId() + "'");
         vertx.executeBlocking((Handler<Promise<Void>>) event -> {
+            System.out.println("executeblocking");
             Incident updated = incidentService.updateIncident(incident);
             event.complete();
             processor.onNext(updated);
-        });
+        }).subscribe().with(v -> {}, t -> {});
     }
 
     private Optional<JsonObject> acceptMessageType(String messageAsJson) {

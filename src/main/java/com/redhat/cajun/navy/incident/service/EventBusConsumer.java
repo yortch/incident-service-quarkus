@@ -19,7 +19,7 @@ import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.core.eventbus.Message;
+import io.vertx.mutiny.core.eventbus.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -69,16 +69,16 @@ public class EventBusConsumer {
         List<Incident> incidents = service.incidents();
         JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
-        msg.reply(jsonObject);
+        msg.replyAndForget(jsonObject);
     }
 
     private void incidentById(Message<JsonObject> msg) {
         String id = msg.body().getString("incidentId");
         Incident incident = service.incidentByIncidentId(id);
         if (incident == null) {
-            msg.reply(new JsonObject());
+            msg.replyAndForget(new JsonObject());
         } else {
-            msg.reply(new JsonObject().put("incident", toJsonObject(incident)));
+            msg.replyAndForget(new JsonObject().put("incident", toJsonObject(incident)));
         }
     }
 
@@ -87,7 +87,7 @@ public class EventBusConsumer {
         List<Incident> incidents = service.incidentsByStatus(status);
         JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
-        msg.reply(jsonObject);
+        msg.replyAndForget(jsonObject);
     }
 
     private void incidentsByName(Message<JsonObject> msg) {
@@ -95,18 +95,18 @@ public class EventBusConsumer {
         List<Incident> incidents = service.incidentsByVictimName(name);
         JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
-        msg.reply(jsonObject);
+        msg.replyAndForget(jsonObject);
     }
 
     private void reset(Message<JsonObject> msg) {
         service.reset();
-        msg.reply(new JsonObject());
+        msg.replyAndForget(new JsonObject());
     }
 
     private void createIncident(Message<JsonObject> msg) {
         Incident created = service.create(codec.fromJsonObject(msg.body()));
         processor.onNext(created);
-        msg.reply(new JsonObject());
+        msg.replyAndForget(new JsonObject());
     }
 
     private JsonObject toJsonObject(Incident incident) {
