@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 @RegisterForReflection
-public class IncidentReportedEvent {
+public class IncidentEvent {
 
     private String id;
 
@@ -18,6 +18,12 @@ public class IncidentReportedEvent {
     private boolean medicalNeeded;
 
     private long timestamp;
+
+    private String victimName;
+
+    private String victimPhoneNumber;
+
+    private String status;
 
     public String getId() {
         return id;
@@ -43,12 +49,24 @@ public class IncidentReportedEvent {
         return timestamp;
     }
 
+    public String getVictimName() {
+        return victimName;
+    }
+
+    public String getVictimPhoneNumber() {
+        return victimPhoneNumber;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
     public static class Builder {
 
-        private IncidentReportedEvent ire;
+        private IncidentEvent ire;
 
         public Builder(String id) {
-            ire = new IncidentReportedEvent();
+            ire = new IncidentEvent();
             ire.id = id;
         }
 
@@ -77,7 +95,22 @@ public class IncidentReportedEvent {
             return this;
         }
 
-        public IncidentReportedEvent build() {
+        public Builder victimName(String victimName) {
+            ire.victimName = victimName;
+            return this;
+        }
+
+        public Builder victimPhoneNumber(String victimPhoneNumber) {
+            ire.victimPhoneNumber = victimPhoneNumber;
+            return this;
+        }
+
+        public Builder status(String status) {
+            ire.status = status;
+            return this;
+        }
+
+        public IncidentEvent build() {
             return ire;
         }
     }

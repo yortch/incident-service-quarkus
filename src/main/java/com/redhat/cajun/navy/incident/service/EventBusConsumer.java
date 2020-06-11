@@ -10,15 +10,16 @@ import javax.inject.Inject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 
-import com.redhat.cajun.navy.incident.message.IncidentReportedEvent;
+import com.redhat.cajun.navy.incident.message.IncidentEvent;
 import com.redhat.cajun.navy.incident.model.Incident;
+import com.redhat.cajun.navy.incident.model.IncidentCodec;
 import io.quarkus.vertx.ConsumeEvent;
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;
-import io.smallrye.reactive.messaging.kafka.KafkaMessage;
+import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.reactivex.core.eventbus.Message;
+import io.vertx.mutiny.core.eventbus.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
 import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
@@ -68,16 +69,16 @@ public class EventBusConsumer {
         List<Incident> incidents = service.incidents();
         JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
-        msg.reply(jsonObject);
+        msg.replyAndForget(jsonObject);
     }
 
     private void incidentById(Message<JsonObject> msg) {
         String id = msg.body().getString("incidentId");
         Incident incident = service.incidentByIncidentId(id);
         if (incident == null) {
-            msg.reply(new JsonObject());
+            msg.replyAndForget(new JsonObject());
         } else {
-            msg.reply(new JsonObject().put("incident", toJsonObject(incident)));
+            msg.replyAndForget(new JsonObject().put("incident", toJsonObject(incident)));
         }
     }
 
@@ -86,7 +87,7 @@ public class EventBusConsumer {
         List<Incident> incidents = service.incidentsByStatus(status);
         JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
-        msg.reply(jsonObject);
+        msg.replyAndForget(jsonObject);
     }
 
     private void incidentsByName(Message<JsonObject> msg) {
@@ -94,45 +95,48 @@ public class EventBusConsumer {
         List<Incident> incidents = service.incidentsByVictimName(name);
         JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
-        msg.reply(jsonObject);
+        msg.replyAndForget(jsonObject);
     }
 
     private void reset(Message<JsonObject> msg) {
         service.reset();
-        msg.reply(new JsonObject());
+        msg.replyAndForget(new JsonObject());
     }
 
     private void createIncident(Message<JsonObject> msg) {
         Incident created = service.create(codec.fromJsonObject(msg.body()));
         processor.onNext(created);
-        msg.reply(new JsonObject());
+        msg.replyAndForget(new JsonObject());
     }
 
     private JsonObject toJsonObject(Incident incident) {
         return codec.toJsonObject(incident);
     }
 
-    @Outgoing("incident-reported-event")
+    @Outgoing("incident-event")
     public PublisherBuilder<org.eclipse.microprofile.reactive.messaging.Message<String>> source() {
         return ReactiveStreams.fromPublisher(processor).flatMapCompletionStage(this::toMessage);
     }
 
     private CompletionStage<org.eclipse.microprofile.reactive.messaging.Message<String>> toMessage(Incident incident) {
-        com.redhat.cajun.navy.incident.message.Message<IncidentReportedEvent> message
+        com.redhat.cajun.navy.incident.message.Message<IncidentEvent> message
                 = new com.redhat.cajun.navy.incident.message.Message.Builder<>("IncidentReportedEvent", "IncidentService",
-                    new IncidentReportedEvent.Builder(incident.getId())
+                    new IncidentEvent.Builder(incident.getId())
                         .lat(new BigDecimal(incident.getLat()))
                         .lon(new BigDecimal(incident.getLon()))
                         .medicalNeeded(incident.isMedicalNeeded())
                         .numberOfPeople(incident.getNumberOfPeople())
                         .timestamp(incident.getTimestamp())
+                        .victimName(incident.getVictimName())
+                        .victimPhoneNumber(incident.getVictimPhoneNumber())
+                        .status(incident.getStatus())
                         .build())
                 .build();
         Jsonb jsonb = JsonbBuilder.create();
         String json = jsonb.toJson(message);
         log.debug("Message: " + json);
         CompletableFuture<org.eclipse.microprofile.reactive.messaging.Message<String>> future = new CompletableFuture<>();
-        KafkaMessage<String, String> kafkaMessage = KafkaMessage.of(incident.getId(), json);
+        KafkaRecord<String, String> kafkaMessage = KafkaRecord.of(incident.getId(), json);
         future.complete(kafkaMessage);
         return future;
     }

@@ -72,28 +72,56 @@ public class Incident {
         return incidentId;
     }
 
+    public void setIncidentId(String incidentId) {
+        this.incidentId = incidentId;
+    }
+
     public String getLatitude() {
         return latitude;
+    }
+
+    public void setLatitude(String latitude) {
+        this.latitude = latitude;
     }
 
     public String getLongitude() {
         return longitude;
     }
 
+    public void setLongitude(String longitude) {
+        this.longitude = longitude;
+    }
+
     public Integer getNumberOfPeople() {
         return numberOfPeople;
+    }
+
+    public void setNumberOfPeople(int numberOfPeople) {
+        this.numberOfPeople = numberOfPeople;
     }
 
     public Boolean isMedicalNeeded() {
         return medicalNeeded;
     }
 
+    public void setMedicalNeeded(boolean medicalNeeded) {
+        this.medicalNeeded = medicalNeeded;
+    }
+
     public String getVictimName() {
         return victimName;
     }
 
+    public void setVictimName(String victimName) {
+        this.victimName = victimName;
+    }
+
     public String getVictimPhoneNumber() {
         return victimPhoneNumber;
+    }
+
+    public void setVictimPhoneNumber(String victimPhoneNumber) {
+        this.victimPhoneNumber = victimPhoneNumber;
     }
 
     public long getTimestamp() {
@@ -104,77 +132,20 @@ public class Incident {
         return reportedTime;
     }
 
+    public void setReportedTime(Instant reportedTime) {
+        this.reportedTime = reportedTime;
+    }
+
     public String getStatus() {
         return status;
     }
 
-    public long getVersion() {
-        return version;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
-    public static class Builder {
-
-        private final Incident incident;
-
-        public Builder() {
-            incident = new Incident();
-        }
-
-        public Builder(long id, long version) {
-            incident = new Incident();
-            incident.id = id;
-            incident.version = version;
-        }
-
-        public Builder incidentId(String incidentId) {
-            incident.incidentId = incidentId;
-            return this;
-        }
-
-        public Builder latitude(String latitude) {
-            incident.latitude = latitude;
-            return this;
-        }
-
-        public Builder longitude(String longitude) {
-            incident.longitude = longitude;
-            return this;
-        }
-
-        public Builder numberOfPeople(Integer numberOfPeople) {
-            incident.numberOfPeople = numberOfPeople;
-            return this;
-        }
-
-        public Builder medicalNeeded(Boolean medicalNeeded) {
-            incident.medicalNeeded = medicalNeeded;
-            return this;
-        }
-
-        public Builder victimName(String victimName) {
-            incident.victimName = victimName;
-            return this;
-        }
-
-        public Builder victimPhoneNumber(String victimPhoneNumber) {
-            incident.victimPhoneNumber = victimPhoneNumber;
-            return this;
-        }
-
-        public Builder reportedTime(long timestamp) {
-            incident.reportedTime = Instant.ofEpochMilli(timestamp);
-            return this;
-        }
-
-        public Builder status(String status) {
-            incident.status = status;
-            return this;
-        }
-
-        public Incident build() {
-            return incident;
-        }
-
+    public long getVersion() {
+        return version;
     }
 
 }
