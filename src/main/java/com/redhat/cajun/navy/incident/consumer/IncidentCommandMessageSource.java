@@ -66,7 +66,6 @@ public class IncidentCommandMessageSource {
 
         log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + incident.getId() + "'");
         vertx.executeBlocking((Handler<Promise<Void>>) event -> {
-            System.out.println("executeblocking");
             Incident updated = incidentService.updateIncident(incident);
             event.complete();
             processor.onNext(updated);
