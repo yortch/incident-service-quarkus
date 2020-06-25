@@ -1,18 +1,14 @@
 package com.redhat.cajun.navy.incident.service;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 
 import com.redhat.cajun.navy.incident.message.IncidentEvent;
-import com.redhat.cajun.navy.incident.model.Incident;
-import com.redhat.cajun.navy.incident.model.IncidentCodec;
 import io.quarkus.vertx.ConsumeEvent;
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;
@@ -34,9 +30,7 @@ public class EventBusConsumer {
     @Inject
     IncidentService service;
 
-    private FlowableProcessor<Incident> processor = UnicastProcessor.<Incident>create().toSerialized();
-
-    private IncidentCodec codec = new IncidentCodec();
+    private FlowableProcessor<JsonObject> processor = UnicastProcessor.<JsonObject>create().toSerialized();
 
     @ConsumeEvent(value = "incident-service", blocking = true)
     public void consume(Message<JsonObject> msg) {
@@ -66,34 +60,30 @@ public class EventBusConsumer {
     }
 
     private void incidents(Message<JsonObject> msg) {
-        List<Incident> incidents = service.incidents();
-        JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
-        JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
+        JsonObject jsonObject = new JsonObject().put("incidents", service.incidents());
         msg.replyAndForget(jsonObject);
     }
 
     private void incidentById(Message<JsonObject> msg) {
         String id = msg.body().getString("incidentId");
-        Incident incident = service.incidentByIncidentId(id);
+        JsonObject incident = service.incidentByIncidentId(id);
         if (incident == null) {
             msg.replyAndForget(new JsonObject());
         } else {
-            msg.replyAndForget(new JsonObject().put("incident", toJsonObject(incident)));
+            msg.replyAndForget(new JsonObject().put("incident", incident));
         }
     }
 
     private void incidentsByStatus(Message<JsonObject> msg) {
         String status = msg.body().getString("status");
-        List<Incident> incidents = service.incidentsByStatus(status);
-        JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
+        JsonArray incidentsArray = service.incidentsByStatus(status);
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
         msg.replyAndForget(jsonObject);
     }
 
     private void incidentsByName(Message<JsonObject> msg) {
         String name = msg.body().getString("name");
-        List<Incident> incidents = service.incidentsByVictimName(name);
-        JsonArray incidentsArray = new JsonArray(incidents.stream().map(this::toJsonObject).collect(Collectors.toList()));
+        JsonArray incidentsArray = service.incidentsByVictimName(name);
         JsonObject jsonObject = new JsonObject().put("incidents", incidentsArray);
         msg.replyAndForget(jsonObject);
     }
@@ -104,13 +94,9 @@ public class EventBusConsumer {
     }
 
     private void createIncident(Message<JsonObject> msg) {
-        Incident created = service.create(codec.fromJsonObject(msg.body()));
+        JsonObject created = service.create(msg.body());
         processor.onNext(created);
         msg.replyAndForget(new JsonObject());
-    }
-
-    private JsonObject toJsonObject(Incident incident) {
-        return codec.toJsonObject(incident);
     }
 
     @Outgoing("incident-event")
@@ -118,26 +104,27 @@ public class EventBusConsumer {
         return ReactiveStreams.fromPublisher(processor).flatMapCompletionStage(this::toMessage);
     }
 
-    private CompletionStage<org.eclipse.microprofile.reactive.messaging.Message<String>> toMessage(Incident incident) {
+    private CompletionStage<org.eclipse.microprofile.reactive.messaging.Message<String>> toMessage(JsonObject incident) {
         com.redhat.cajun.navy.incident.message.Message<IncidentEvent> message
                 = new com.redhat.cajun.navy.incident.message.Message.Builder<>("IncidentReportedEvent", "IncidentService",
-                    new IncidentEvent.Builder(incident.getId())
-                        .lat(new BigDecimal(incident.getLat()))
-                        .lon(new BigDecimal(incident.getLon()))
-                        .medicalNeeded(incident.isMedicalNeeded())
-                        .numberOfPeople(incident.getNumberOfPeople())
-                        .timestamp(incident.getTimestamp())
-                        .victimName(incident.getVictimName())
-                        .victimPhoneNumber(incident.getVictimPhoneNumber())
-                        .status(incident.getStatus())
+                    new IncidentEvent.Builder(incident.getString("id"))
+                        .lat(new BigDecimal(incident.getString("lat")))
+                        .lon(new BigDecimal(incident.getString("lon")))
+                        .medicalNeeded(incident.getBoolean("medicalNeeded"))
+                        .numberOfPeople(incident.getInteger("numberOfPeople"))
+                        .timestamp(incident.getLong("timestamp"))
+                        .victimName(incident.getString("victimName"))
+                        .victimPhoneNumber(incident.getString("victimPhoneNumber"))
+                        .status(incident.getString("status"))
                         .build())
                 .build();
         Jsonb jsonb = JsonbBuilder.create();
         String json = jsonb.toJson(message);
         log.debug("Message: " + json);
         CompletableFuture<org.eclipse.microprofile.reactive.messaging.Message<String>> future = new CompletableFuture<>();
-        KafkaRecord<String, String> kafkaMessage = KafkaRecord.of(incident.getId(), json);
+        KafkaRecord<String, String> kafkaMessage = KafkaRecord.of(incident.getString("id"), json);
         future.complete(kafkaMessage);
         return future;
+
     }
 }
