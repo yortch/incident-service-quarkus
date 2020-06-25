@@ -12,15 +12,11 @@ import javax.json.bind.JsonbBuilder;
 
 import com.redhat.cajun.navy.incident.message.IncidentEvent;
 import com.redhat.cajun.navy.incident.message.Message;
-import com.redhat.cajun.navy.incident.model.Incident;
-import com.redhat.cajun.navy.incident.model.IncidentCodec;
 import com.redhat.cajun.navy.incident.service.IncidentService;
 import io.reactivex.processors.FlowableProcessor;
 import io.reactivex.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.vertx.mutiny.core.Promise;
-import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.Vertx;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
@@ -39,7 +35,7 @@ public class IncidentCommandMessageSource {
     private static final String UPDATE_INCIDENT_COMMAND = "UpdateIncidentCommand";
     private static final String[] ACCEPTED_MESSAGE_TYPES = {UPDATE_INCIDENT_COMMAND};
 
-    private FlowableProcessor<Incident> processor = UnicastProcessor.<Incident>create().toSerialized();
+    private FlowableProcessor<JsonObject> processor = UnicastProcessor.<JsonObject>create().toSerialized();
 
     @Inject
     IncidentService incidentService;
@@ -49,27 +45,25 @@ public class IncidentCommandMessageSource {
 
     @Incoming("incident-command")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
-    public CompletionStage<IncomingKafkaRecord<String, String>> processMessage(IncomingKafkaRecord<String, String> message) {
-        try {
-            acceptMessageType(message.getPayload()).ifPresent(this::processUpdateIncidentCommand);
-        } catch (Exception e) {
-            log.error("Error processing msg " + message.getPayload(), e);
-        }
-        return message.ack().toCompletableFuture().thenApply(x -> message);
+    public CompletionStage<CompletionStage<Void>> processMessage(IncomingKafkaRecord<String, String> message) {
+
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                acceptMessageType(message.getPayload()).ifPresent(this::processUpdateIncidentCommand);
+            } catch (Exception e) {
+                log.error("Error processing msg " + message.getPayload(), e);
+            }
+            return message.ack();
+        });
     }
 
     @SuppressWarnings("unchecked")
     private void processUpdateIncidentCommand(JsonObject json) {
 
         JsonObject body = json.getJsonObject("body").getJsonObject("incident");
-        Incident incident = new IncidentCodec().fromJsonObject(body);
-
-        log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + incident.getId() + "'");
-        vertx.executeBlocking((Handler<Promise<Void>>) event -> {
-            Incident updated = incidentService.updateIncident(incident);
-            event.complete();
-            processor.onNext(updated);
-        }).subscribe().with(v -> {}, t -> {});
+        log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + body.getString("id") + "'");
+        JsonObject updated = incidentService.updateIncident(body);
+        processor.onNext(updated);
     }
 
     private Optional<JsonObject> acceptMessageType(String messageAsJson) {
@@ -94,24 +88,25 @@ public class IncidentCommandMessageSource {
         return ReactiveStreams.fromPublisher(processor).flatMapCompletionStage(this::toMessage);
     }
 
-    private CompletionStage<org.eclipse.microprofile.reactive.messaging.Message<String>> toMessage(Incident incident) {
+    private CompletionStage<org.eclipse.microprofile.reactive.messaging.Message<String>> toMessage(JsonObject incident) {
         Message<IncidentEvent> message = new Message.Builder<>("IncidentUpdatedEvent", "IncidentService",
-                new IncidentEvent.Builder(incident.getId())
-                        .lat(new BigDecimal(incident.getLat()))
-                        .lon(new BigDecimal(incident.getLon()))
-                        .medicalNeeded(incident.isMedicalNeeded())
-                        .numberOfPeople(incident.getNumberOfPeople())
-                        .timestamp(incident.getTimestamp())
-                        .victimName(incident.getVictimName())
-                        .victimPhoneNumber(incident.getVictimPhoneNumber())
-                        .status(incident.getStatus())
+                new IncidentEvent.Builder(incident.getString("id"))
+                        .lat(new BigDecimal(incident.getString("lat")))
+                        .lon(new BigDecimal(incident.getString("lon")))
+                        .medicalNeeded(incident.getBoolean("medicalNeeded"))
+                        .numberOfPeople(incident.getInteger("numberOfPeople"))
+                        .timestamp(incident.getLong("timestamp"))
+                        .victimName(incident.getString("victimName"))
+                        .victimPhoneNumber(incident.getString("victimPhoneNumber"))
+                        .status(incident.getString("status"))
                         .build())
                 .build();
-        Jsonb jsonb = JsonbBuilder.create();
+        Jsonb jsonb = null;
+        jsonb = JsonbBuilder.create();
         String json = jsonb.toJson(message);
         log.debug("Message: " + json);
         CompletableFuture<org.eclipse.microprofile.reactive.messaging.Message<String>> future = new CompletableFuture<>();
-        KafkaRecord<String, String> kafkaMessage = KafkaRecord.of(incident.getId(), json);
+        KafkaRecord<String, String> kafkaMessage = KafkaRecord.of(incident.getString("id"), json);
         future.complete(kafkaMessage);
         return future;
     }

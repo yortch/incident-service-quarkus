@@ -10,16 +10,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import javax.inject.Inject;
 
 import com.redhat.cajun.navy.incident.dao.IncidentDao;
 import com.redhat.cajun.navy.incident.entity.Incident;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -81,21 +83,21 @@ public class IncidentServiceTest {
 
         when(incidentDao.findAll()).thenReturn(Arrays.asList(incident1, incident2, incident3));
 
-        List<com.redhat.cajun.navy.incident.model.Incident> incidents = incidentService.incidents();
+        JsonArray incidents = incidentService.incidents();
 
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(3));
-        assertThat(incidents.get(0).getId(), anyOf(equalTo("incident1"), equalTo("incident2"),equalTo("incident3")));
-        com.redhat.cajun.navy.incident.model.Incident matched = incidents.stream().filter(i -> i.getId().equals("incident2")).findFirst().orElse(null);
+        assertThat(incidents.getJsonObject(0).getString("id"), anyOf(equalTo("incident1"), equalTo("incident2"),equalTo("incident3")));
+        JsonObject matched = (JsonObject) incidents.stream().filter(o -> ((JsonObject) o).getString("id").equals("incident2")).findFirst().orElse(null);
         assertThat(matched, notNullValue());
-        assertThat(matched.getLat(), equalTo(incident2.getLatitude()));
-        assertThat(matched.getLon(), equalTo(incident2.getLongitude()));
-        assertThat(matched.isMedicalNeeded(), equalTo(incident2.isMedicalNeeded()));
-        assertThat(matched.getNumberOfPeople(), equalTo(incident2.getNumberOfPeople()));
-        assertThat(matched.getVictimName(), equalTo(incident2.getVictimName()));
-        assertThat(matched.getVictimPhoneNumber(), equalTo(incident2.getVictimPhoneNumber()));
-        assertThat(matched.getTimestamp(), equalTo(incident2.getTimestamp()));
-        assertThat(matched.getStatus(), equalTo(incident2.getStatus()));
+        assertThat(matched.getString("lat"), equalTo(incident2.getLatitude()));
+        assertThat(matched.getString("lon"), equalTo(incident2.getLongitude()));
+        assertThat(matched.getBoolean("medicalNeeded"), equalTo(incident2.isMedicalNeeded()));
+        assertThat(matched.getInteger("numberOfPeople"), equalTo(incident2.getNumberOfPeople()));
+        assertThat(matched.getString("victimName"), equalTo(incident2.getVictimName()));
+        assertThat(matched.getString("victimPhoneNumber"), equalTo(incident2.getVictimPhoneNumber()));
+        assertThat(matched.getLong("timestamp"), equalTo(incident2.getTimestamp()));
+        assertThat(matched.getString("status"), equalTo(incident2.getStatus()));
     }
 
     @Test
@@ -114,39 +116,38 @@ public class IncidentServiceTest {
 
         when(incidentDao.create(Mockito.any(Incident.class))).thenReturn(incidentEntity);
 
-        com.redhat.cajun.navy.incident.model.Incident incident = new com.redhat.cajun.navy.incident.model.Incident.Builder()
-                .lat("31.12345")
-                .lon("-71.98765")
-                .numberOfPeople(4)
-                .medicalNeeded(true)
-                .victimName("John Doe")
-                .victimPhoneNumber("(211) 456-78990")
-                .build();
+        JsonObject incident = new JsonObject()
+                .put("lat", new BigDecimal("31.12345").doubleValue())
+                .put("lon", new BigDecimal("-71.98765").doubleValue())
+                .put("numberOfPeople", 4)
+                .put("medicalNeeded", true)
+                .put("victimName", "John Doe")
+                .put("victimPhoneNumber", "(211) 456-78990");
 
-        com.redhat.cajun.navy.incident.model.Incident created = incidentService.create(incident);
+        JsonObject created = incidentService.create(incident);
 
         assertThat(created, notNullValue());
-        assertThat(created.getId(), equalTo(incidentEntity.getIncidentId()));
-        assertThat(created.getLat(), equalTo(incidentEntity.getLatitude()));
-        assertThat(created.getLon(), equalTo(incidentEntity.getLongitude()));
-        assertThat(created.isMedicalNeeded(), equalTo(incidentEntity.isMedicalNeeded()));
-        assertThat(created.getNumberOfPeople(), equalTo(incidentEntity.getNumberOfPeople()));
-        assertThat(created.getVictimName(), equalTo(incidentEntity.getVictimName()));
-        assertThat(created.getVictimPhoneNumber(), equalTo(incidentEntity.getVictimPhoneNumber()));
-        assertThat(created.getTimestamp(), equalTo(incidentEntity.getTimestamp()));
-        assertThat(created.getStatus(), equalTo(incidentEntity.getStatus()));
+        assertThat(created.getString("id"), equalTo(incidentEntity.getIncidentId()));
+        assertThat(created.getString("lat"), equalTo(incidentEntity.getLatitude()));
+        assertThat(created.getString("lon"), equalTo(incidentEntity.getLongitude()));
+        assertThat(created.getBoolean("medicalNeeded"), equalTo(incidentEntity.isMedicalNeeded()));
+        assertThat(created.getInteger("numberOfPeople"), equalTo(incidentEntity.getNumberOfPeople()));
+        assertThat(created.getString("victimName"), equalTo(incidentEntity.getVictimName()));
+        assertThat(created.getString("victimPhoneNumber"), equalTo(incidentEntity.getVictimPhoneNumber()));
+        assertThat(created.getLong("timestamp"), equalTo(incidentEntity.getTimestamp()));
+        assertThat(created.getString("status"), equalTo(incidentEntity.getStatus()));
 
         verify(incidentDao).create(incidentCaptor.capture());
         Incident captured = incidentCaptor.getValue();
         assertThat(captured, notNullValue());
         assertThat(captured.getIncidentId().length(), equalTo(36));
         assertThat(captured.getStatus(), equalTo("REPORTED"));
-        assertThat(captured.getLatitude(), equalTo(incident.getLat()));
-        assertThat(captured.getLongitude(), equalTo(incident.getLon()));
-        assertThat(captured.getNumberOfPeople(), equalTo(incident.getNumberOfPeople()));
-        assertThat(captured.isMedicalNeeded(), equalTo(incident.isMedicalNeeded()));
-        assertThat(captured.getVictimName(), equalTo(incident.getVictimName()));
-        assertThat(captured.getVictimPhoneNumber(), equalTo(incident.getVictimPhoneNumber()));
+        assertThat(captured.getLatitude(), equalTo("31.12345"));
+        assertThat(captured.getLongitude(), equalTo("-71.98765"));
+        assertThat(captured.getNumberOfPeople(), equalTo(4));
+        assertThat(captured.isMedicalNeeded(), equalTo(true));
+        assertThat(captured.getVictimName(), equalTo("John Doe"));
+        assertThat(captured.getVictimPhoneNumber(), equalTo("(211) 456-78990"));
     }
 
     @Test
@@ -165,26 +166,25 @@ public class IncidentServiceTest {
 
         when(incidentDao.findByIncidentId("incident2")).thenReturn(incidentEntity);
 
-        com.redhat.cajun.navy.incident.model.Incident incident = new com.redhat.cajun.navy.incident.model.Incident.Builder("incident2")
-                .lat("32.12345")
-                .lon("-72.98765")
-                .status("ASSIGNED")
-                .build();
+        JsonObject incident = new JsonObject().put("id", "incident2")
+                .put("lat", new BigDecimal("32.12345").doubleValue())
+                .put("lon", new BigDecimal("-72.98765").doubleValue())
+                .put("status", "ASSIGNED");
 
-        com.redhat.cajun.navy.incident.model.Incident updated = incidentService.updateIncident(incident);
+        JsonObject updated = incidentService.updateIncident(incident);
         assertThat(updated, notNullValue());
-        assertThat(updated.getId(), equalTo("incident2"));
-        assertThat(updated.getLat(), equalTo(incident.getLat()));
-        assertThat(updated.getLon(), equalTo(incident.getLon()));
-        assertThat(updated.getStatus(), equalTo(incident.getStatus()));
-        assertThat(updated.getNumberOfPeople(), equalTo(incidentEntity.getNumberOfPeople()));
-        assertThat(updated.isMedicalNeeded(), equalTo(incidentEntity.isMedicalNeeded()));
-        assertThat(updated.getVictimName(), equalTo(incidentEntity.getVictimName()));
-        assertThat(updated.getVictimPhoneNumber(), equalTo(incidentEntity.getVictimPhoneNumber()));
+        assertThat(updated.getString("id"), equalTo("incident2"));
+        assertThat(updated.getString("lat"), equalTo(incident.getDouble("lat").toString()));
+        assertThat(updated.getString("lon"), equalTo(incident.getDouble("lon").toString()));
+        assertThat(updated.getString("status"), equalTo(incident.getString("status")));
+        assertThat(updated.getInteger("numberOfPeople"), equalTo(incidentEntity.getNumberOfPeople()));
+        assertThat(updated.getBoolean("medicalNeeded"), equalTo(incidentEntity.isMedicalNeeded()));
+        assertThat(updated.getString("victimName"), equalTo(incidentEntity.getVictimName()));
+        assertThat(updated.getString("victimPhoneNumber"), equalTo(incidentEntity.getVictimPhoneNumber()));
 
-        assertThat(incidentEntity.getLatitude(), equalTo(incident.getLat()));
-        assertThat(incidentEntity.getLongitude(), equalTo(incident.getLon()));
-        assertThat(incidentEntity.getStatus(), equalTo(incident.getStatus()));
+        assertThat(incidentEntity.getLatitude(), equalTo("32.12345"));
+        assertThat(incidentEntity.getLongitude(), equalTo("-72.98765"));
+        assertThat(incidentEntity.getStatus(), equalTo("ASSIGNED"));
         verify(incidentDao).findByIncidentId("incident2");
     }
 
@@ -203,18 +203,18 @@ public class IncidentServiceTest {
 
         when(incidentDao.findByIncidentId("incident2")).thenReturn(incidentEntity);
 
-        com.redhat.cajun.navy.incident.model.Incident found = incidentService.incidentByIncidentId("incident2");
+        JsonObject found = incidentService.incidentByIncidentId("incident2");
 
         assertThat(found, notNullValue());
-        assertThat(found.getId(), equalTo(incidentEntity.getIncidentId()));
-        assertThat(found.getLat(), equalTo(incidentEntity.getLatitude()));
-        assertThat(found.getLon(), equalTo(incidentEntity.getLongitude()));
-        assertThat(found.isMedicalNeeded(), equalTo(incidentEntity.isMedicalNeeded()));
-        assertThat(found.getNumberOfPeople(), equalTo(incidentEntity.getNumberOfPeople()));
-        assertThat(found.getVictimName(), equalTo(incidentEntity.getVictimName()));
-        assertThat(found.getVictimPhoneNumber(), equalTo(incidentEntity.getVictimPhoneNumber()));
-        assertThat(found.getTimestamp(), equalTo(incidentEntity.getTimestamp()));
-        assertThat(found.getStatus(), equalTo(incidentEntity.getStatus()));
+        assertThat(found.getString("id"), equalTo(incidentEntity.getIncidentId()));
+        assertThat(found.getString("lat"), equalTo(incidentEntity.getLatitude()));
+        assertThat(found.getString("lon"), equalTo(incidentEntity.getLongitude()));
+        assertThat(found.getBoolean("medicalNeeded"), equalTo(incidentEntity.isMedicalNeeded()));
+        assertThat(found.getInteger("numberOfPeople"), equalTo(incidentEntity.getNumberOfPeople()));
+        assertThat(found.getString("victimName"), equalTo(incidentEntity.getVictimName()));
+        assertThat(found.getString("victimPhoneNumber"), equalTo(incidentEntity.getVictimPhoneNumber()));
+        assertThat(found.getLong("timestamp"), equalTo(incidentEntity.getTimestamp()));
+        assertThat(found.getString("status"), equalTo(incidentEntity.getStatus()));
         verify(incidentDao).findByIncidentId("incident2");
     }
 
@@ -224,7 +224,7 @@ public class IncidentServiceTest {
 
         when(incidentDao.findByIncidentId("incident2")).thenReturn(null);
 
-        com.redhat.cajun.navy.incident.model.Incident found = incidentService.incidentByIncidentId("incident2");
+        JsonObject found = incidentService.incidentByIncidentId("incident2");
 
         assertThat(found, nullValue());
         verify(incidentDao).findByIncidentId("incident2");
@@ -257,24 +257,23 @@ public class IncidentServiceTest {
 
         when(incidentDao.findByStatus("REPORTED")).thenReturn(Arrays.asList(incidentEntity, incidentEntity2));
 
-        List<com.redhat.cajun.navy.incident.model.Incident> incidents = incidentService.incidentsByStatus("REPORTED");
+        JsonArray incidents = incidentService.incidentsByStatus("REPORTED");
 
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(2));
-        assertThat(incidents.get(0).getId(), anyOf(equalTo("incident1"), equalTo("incident2")));
-        assertThat(incidents.get(1).getId(), anyOf(equalTo("incident1"), equalTo("incident2")));
-        assertThat(incidents.get(0).getId(), not(equalTo(incidents.get(1))));
-        com.redhat.cajun.navy.incident.model.Incident found = incidents.stream().filter(i -> i.getId().equals("incident2")).findFirst().orElse(null);
+        assertThat(incidents.getJsonObject(0).getString("id"), anyOf(equalTo("incident1"), equalTo("incident2")));
+        assertThat(incidents.getJsonObject(1).getString("id"), anyOf(equalTo("incident1"), equalTo("incident2")));
+        assertThat(incidents.getJsonObject(0), not(equalTo(incidents.getJsonObject(1))));
+        JsonObject found = (JsonObject) incidents.stream().filter(o -> ((JsonObject) o).getString("id").equals("incident2")).findFirst().orElse(null);
         assertThat(found, notNullValue());
-        assertThat(found.getLat(), equalTo(incidentEntity2.getLatitude()));
-        assertThat(found.getLon(), equalTo(incidentEntity2.getLongitude()));
-        assertThat(found.isMedicalNeeded(), equalTo(incidentEntity2.isMedicalNeeded()));
-        assertThat(found.getNumberOfPeople(), equalTo(incidentEntity2.getNumberOfPeople()));
-        assertThat(found.getVictimName(), equalTo(incidentEntity2.getVictimName()));
-        assertThat(found.getVictimPhoneNumber(), equalTo(incidentEntity2.getVictimPhoneNumber()));
-        assertThat(found.getTimestamp(), equalTo(incidentEntity2.getTimestamp()));
-        assertThat(found.getStatus(), equalTo(incidentEntity2.getStatus()));
-
+        assertThat(found.getString("lat"), equalTo(incidentEntity2.getLatitude()));
+        assertThat(found.getString("lon"), equalTo(incidentEntity2.getLongitude()));
+        assertThat(found.getBoolean("medicalNeeded"), equalTo(incidentEntity2.isMedicalNeeded()));
+        assertThat(found.getInteger("numberOfPeople"), equalTo(incidentEntity2.getNumberOfPeople()));
+        assertThat(found.getString("victimName"), equalTo(incidentEntity2.getVictimName()));
+        assertThat(found.getString("victimPhoneNumber"), equalTo(incidentEntity2.getVictimPhoneNumber()));
+        assertThat(found.getLong("timestamp"), equalTo(incidentEntity2.getTimestamp()));
+        assertThat(found.getString("status"), equalTo(incidentEntity2.getStatus()));
         verify(incidentDao).findByStatus("REPORTED");
     }
 
@@ -283,7 +282,7 @@ public class IncidentServiceTest {
 
         when(incidentDao.findByStatus("REPORTED")).thenReturn(Collections.emptyList());
 
-        List<com.redhat.cajun.navy.incident.model.Incident> incidents = incidentService.incidentsByStatus("REPORTED");
+        JsonArray incidents = incidentService.incidentsByStatus("REPORTED");
 
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(0));
@@ -318,23 +317,23 @@ public class IncidentServiceTest {
 
         when(incidentDao.findByName("John%")).thenReturn(Arrays.asList(incidentEntity, incidentEntity2));
 
-        List<com.redhat.cajun.navy.incident.model.Incident> incidents = incidentService.incidentsByVictimName("John%");
+        JsonArray incidents = incidentService.incidentsByVictimName("John%");
 
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(2));
-        assertThat(incidents.get(0).getId(), anyOf(equalTo("incident1"), equalTo("incident2")));
-        assertThat(incidents.get(1).getId(), anyOf(equalTo("incident1"), equalTo("incident2")));
-        assertThat(incidents.get(0).getId(), not(equalTo(incidents.get(1))));
-        com.redhat.cajun.navy.incident.model.Incident found = incidents.stream().filter(i -> i.getId().equals("incident2")).findFirst().orElse(null);
+        assertThat(incidents.getJsonObject(0).getString("id"), anyOf(equalTo("incident1"), equalTo("incident2")));
+        assertThat(incidents.getJsonObject(1).getString("id"), anyOf(equalTo("incident1"), equalTo("incident2")));
+        assertThat(incidents.getJsonObject(0), not(equalTo(incidents.getJsonObject(1))));
+        JsonObject found = (JsonObject) incidents.stream().filter(o -> ((JsonObject) o).getString("id").equals("incident2")).findFirst().orElse(null);
         assertThat(found, notNullValue());
-        assertThat(found.getLat(), equalTo(incidentEntity2.getLatitude()));
-        assertThat(found.getLon(), equalTo(incidentEntity2.getLongitude()));
-        assertThat(found.isMedicalNeeded(), equalTo(incidentEntity2.isMedicalNeeded()));
-        assertThat(found.getNumberOfPeople(), equalTo(incidentEntity2.getNumberOfPeople()));
-        assertThat(found.getVictimName(), equalTo(incidentEntity2.getVictimName()));
-        assertThat(found.getVictimPhoneNumber(), equalTo(incidentEntity2.getVictimPhoneNumber()));
-        assertThat(found.getTimestamp(), equalTo(incidentEntity2.getTimestamp()));
-        assertThat(found.getStatus(), equalTo(incidentEntity2.getStatus()));
+        assertThat(found.getString("lat"), equalTo(incidentEntity2.getLatitude()));
+        assertThat(found.getString("lon"), equalTo(incidentEntity2.getLongitude()));
+        assertThat(found.getBoolean("medicalNeeded"), equalTo(incidentEntity2.isMedicalNeeded()));
+        assertThat(found.getInteger("numberOfPeople"), equalTo(incidentEntity2.getNumberOfPeople()));
+        assertThat(found.getString("victimName"), equalTo(incidentEntity2.getVictimName()));
+        assertThat(found.getString("victimPhoneNumber"), equalTo(incidentEntity2.getVictimPhoneNumber()));
+        assertThat(found.getLong("timestamp"), equalTo(incidentEntity2.getTimestamp()));
+        assertThat(found.getString("status"), equalTo(incidentEntity2.getStatus()));
 
         verify(incidentDao).findByName("John%");
     }
@@ -344,7 +343,7 @@ public class IncidentServiceTest {
 
         when(incidentDao.findByName("John%")).thenReturn(Collections.emptyList());
 
-        List<com.redhat.cajun.navy.incident.model.Incident> incidents = incidentService.incidentsByVictimName("John%");
+        JsonArray incidents = incidentService.incidentsByVictimName("John%");
 
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(0));

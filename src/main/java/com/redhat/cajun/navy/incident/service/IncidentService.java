@@ -1,7 +1,7 @@
 package com.redhat.cajun.navy.incident.service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
@@ -9,8 +9,10 @@ import javax.inject.Inject;
 import javax.transaction.Transactional;
 
 import com.redhat.cajun.navy.incident.dao.IncidentDao;
-import com.redhat.cajun.navy.incident.model.Incident;
+import com.redhat.cajun.navy.incident.entity.Incident;
 import com.redhat.cajun.navy.incident.model.IncidentStatus;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,61 +25,61 @@ public class IncidentService {
     IncidentDao incidentDao;
 
     @Transactional
-    public List<Incident> incidents() {
-        return incidentDao.findAll().stream().map(this::fromEntity).collect(Collectors.toList());
+    public JsonArray incidents() {
+        return new JsonArray(incidentDao.findAll().stream().map(this::fromEntity).collect(Collectors.toList()));
     }
 
     @Transactional
-    public Incident create(Incident incident) {
-        com.redhat.cajun.navy.incident.entity.Incident created = incidentDao.create(toEntity(incident));
+    public JsonObject create(JsonObject incident) {
+        Incident created = incidentDao.create(toEntity(incident));
 
         return fromEntity(created);
     }
 
     @Transactional
-    public Incident updateIncident(Incident incident) {
-        com.redhat.cajun.navy.incident.entity.Incident current = incidentDao.findByIncidentId(incident.getId());
+    public JsonObject updateIncident(JsonObject incident) {
+        Incident current = incidentDao.findByIncidentId(incident.getString("id"));
         if (current == null) {
-            log.warn("Incident with id '" + incident.getId() + "' not found in the database");
+            log.warn("Incident with id '" + incident.getString("id") + "' not found in the database");
             return null;
         }
-        if (incident.getLat() != null && !incident.getLat().equals(current.getLatitude())) {
-            current.setLatitude(incident.getLat());
+        if (incident.getDouble("lat") != null && !BigDecimal.valueOf(incident.getDouble("lat")).toString().equals(current.getLatitude())) {
+            current.setLatitude(BigDecimal.valueOf(incident.getDouble("lat")).toString());
         }
-        if (incident.getLon() != null && !incident.getLon().equals(current.getLatitude())) {
-            current.setLongitude(incident.getLon());
+        if (incident.getDouble("lon") != null && !BigDecimal.valueOf(incident.getDouble("lon")).toString().equals(current.getLongitude())) {
+            current.setLongitude(BigDecimal.valueOf(incident.getDouble("lon")).toString());
         }
-        if (incident.getNumberOfPeople() != null && !incident.getNumberOfPeople().equals(current.getNumberOfPeople())) {
-            current.setNumberOfPeople(incident.getNumberOfPeople());
+        if (incident.getInteger("numberOfPeople") != null && !incident.getInteger("numberOfPeople").equals(current.getNumberOfPeople())) {
+            current.setNumberOfPeople(incident.getInteger("numberOfPeople"));
         }
-        if (incident.isMedicalNeeded() != null && !incident.isMedicalNeeded().equals(current.isMedicalNeeded())) {
-            current.setMedicalNeeded(incident.isMedicalNeeded());
+        if (incident.getBoolean("medicalNeeded") != null && !incident.getBoolean("medicalNeeded").equals(current.isMedicalNeeded())) {
+            current.setMedicalNeeded(incident.getBoolean("medicalNeeded"));
         }
-        if (incident.getVictimName() != null && !incident.getVictimName().equals(current.getVictimName())) {
-            current.setVictimName(incident.getVictimName());
+        if (incident.getString("victimName") != null && !incident.getString("victimName").equals(current.getVictimName())) {
+            current.setVictimName(incident.getString("victimName"));
         }
-        if (incident.getVictimPhoneNumber() != null && !incident.getVictimPhoneNumber().equals(current.getVictimPhoneNumber())) {
-            current.setVictimPhoneNumber(incident.getVictimPhoneNumber());
+        if (incident.getString("victimPhoneNumber") != null && !incident.getString("victimPhoneNumber").equals(current.getVictimPhoneNumber())) {
+            current.setVictimPhoneNumber(incident.getString("victimPhoneNumber"));
         }
-        if (incident.getStatus() != null && !incident.getStatus().equals(current.getStatus())) {
-            current.setStatus(incident.getStatus());
+        if (incident.getString("status") != null && !incident.getString("status").equals(current.getStatus())) {
+            current.setStatus(incident.getString("status"));
         }
         return fromEntity(current);
     }
 
     @Transactional
-    public Incident incidentByIncidentId(String incidentId) {
+    public JsonObject incidentByIncidentId(String incidentId) {
         return fromEntity(incidentDao.findByIncidentId(incidentId));
     }
 
     @Transactional
-    public List<Incident> incidentsByStatus(String status) {
-        return incidentDao.findByStatus(status).stream().map(this::fromEntity).collect(Collectors.toList());
+    public JsonArray incidentsByStatus(String status) {
+        return new JsonArray(incidentDao.findByStatus(status).stream().map(this::fromEntity).collect(Collectors.toList()));
     }
 
     @Transactional
-    public List<Incident> incidentsByVictimName(String name) {
-        return incidentDao.findByName(name).stream().map(this::fromEntity).collect(Collectors.toList());
+    public JsonArray incidentsByVictimName(String name) {
+        return new JsonArray(incidentDao.findByName(name).stream().map(this::fromEntity).collect(Collectors.toList()));
     }
 
     @Transactional
@@ -85,36 +87,34 @@ public class IncidentService {
         incidentDao.deleteAll();
     }
 
-    private Incident fromEntity(com.redhat.cajun.navy.incident.entity.Incident r) {
-
+    private JsonObject fromEntity(com.redhat.cajun.navy.incident.entity.Incident r) {
         if (r == null) {
             return null;
         }
-        return new Incident.Builder(r.getIncidentId())
-                .lat(r.getLatitude())
-                .lon(r.getLongitude())
-                .medicalNeeded(r.isMedicalNeeded())
-                .numberOfPeople(r.getNumberOfPeople())
-                .victimName(r.getVictimName())
-                .victimPhoneNumber(r.getVictimPhoneNumber())
-                .status(r.getStatus())
-                .timestamp(r.getTimestamp())
-                .build();
+        return new JsonObject().put("id", r.getIncidentId())
+                .put("lat", r.getLatitude())
+                .put("lon", r.getLongitude())
+                .put("medicalNeeded", r.isMedicalNeeded())
+                .put("numberOfPeople", r.getNumberOfPeople())
+                .put("victimName", r.getVictimName())
+                .put("victimPhoneNumber", r.getVictimPhoneNumber())
+                .put("status", r.getStatus())
+                .put("timestamp", r.getTimestamp());
     }
 
-    private com.redhat.cajun.navy.incident.entity.Incident toEntity(Incident incident) {
+    private Incident toEntity(JsonObject incident) {
 
         String incidentId = UUID.randomUUID().toString();
         long reportedTimestamp = System.currentTimeMillis();
 
-        com.redhat.cajun.navy.incident.entity.Incident entity = new com.redhat.cajun.navy.incident.entity.Incident();
+        Incident entity = new com.redhat.cajun.navy.incident.entity.Incident();
         entity.setIncidentId(incidentId);
-        entity.setLatitude(incident.getLat());
-        entity.setLongitude(incident.getLon());
-        entity.setMedicalNeeded(incident.isMedicalNeeded());
-        entity.setNumberOfPeople(incident.getNumberOfPeople());
-        entity.setVictimName(incident.getVictimName());
-        entity.setVictimPhoneNumber(incident.getVictimPhoneNumber());
+        entity.setLatitude(incident.getDouble("lat") != null ? incident.getDouble("lat").toString() : null);
+        entity.setLongitude(incident.getDouble("lon") != null ? incident.getDouble("lon").toString() : null);
+        entity.setMedicalNeeded(incident.getBoolean("medicalNeeded"));
+        entity.setNumberOfPeople(incident.getInteger("numberOfPeople"));
+        entity.setVictimName(incident.getString("victimName"));
+        entity.setVictimPhoneNumber(incident.getString("victimPhoneNumber"));
         entity.setReportedTime(Instant.ofEpochMilli(reportedTimestamp));
         entity.setStatus(IncidentStatus.REPORTED.name());
         return entity;
