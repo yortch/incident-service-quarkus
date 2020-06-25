@@ -1,8 +1,6 @@
 package com.redhat.emergency.response.incident.service;
 
 import java.math.BigDecimal;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.json.bind.Jsonb;
@@ -10,27 +8,25 @@ import javax.json.bind.JsonbBuilder;
 
 import com.redhat.emergency.response.incident.message.IncidentEvent;
 import io.quarkus.vertx.ConsumeEvent;
-import io.reactivex.processors.FlowableProcessor;
-import io.reactivex.processors.UnicastProcessor;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.eventbus.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
-import org.eclipse.microprofile.reactive.streams.operators.PublisherBuilder;
-import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class EventBusConsumer {
 
-    private static Logger log = LoggerFactory.getLogger(EventBusConsumer.class);
+    private static final Logger log = LoggerFactory.getLogger(EventBusConsumer.class);
 
     @Inject
     IncidentService service;
 
-    private FlowableProcessor<JsonObject> processor = UnicastProcessor.<JsonObject>create().toSerialized();
+    private final UnicastProcessor<JsonObject> processor = UnicastProcessor.create();
 
     @ConsumeEvent(value = "incident-service", blocking = true)
     public void consume(Message<JsonObject> msg) {
@@ -100,11 +96,11 @@ public class EventBusConsumer {
     }
 
     @Outgoing("incident-event")
-    public PublisherBuilder<org.eclipse.microprofile.reactive.messaging.Message<String>> source() {
-        return ReactiveStreams.fromPublisher(processor).flatMapCompletionStage(this::toMessage);
+    public Multi<org.eclipse.microprofile.reactive.messaging.Message<String>> source() {
+        return processor.onItem().apply(this::toMessage);
     }
 
-    private CompletionStage<org.eclipse.microprofile.reactive.messaging.Message<String>> toMessage(JsonObject incident) {
+    private org.eclipse.microprofile.reactive.messaging.Message<String> toMessage(JsonObject incident) {
         com.redhat.emergency.response.incident.message.Message<IncidentEvent> message
                 = new com.redhat.emergency.response.incident.message.Message.Builder<>("IncidentReportedEvent", "IncidentService",
                     new IncidentEvent.Builder(incident.getString("id"))
@@ -121,10 +117,7 @@ public class EventBusConsumer {
         Jsonb jsonb = JsonbBuilder.create();
         String json = jsonb.toJson(message);
         log.debug("Message: " + json);
-        CompletableFuture<org.eclipse.microprofile.reactive.messaging.Message<String>> future = new CompletableFuture<>();
-        KafkaRecord<String, String> kafkaMessage = KafkaRecord.of(incident.getString("id"), json);
-        future.complete(kafkaMessage);
-        return future;
+        return KafkaRecord.of(incident.getString("id"), json);
 
     }
 }
