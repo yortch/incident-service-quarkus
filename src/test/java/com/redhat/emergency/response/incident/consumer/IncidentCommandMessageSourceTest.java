@@ -29,6 +29,7 @@ import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonObject;
 import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.kafka.client.consumer.impl.KafkaConsumerImpl;
@@ -171,7 +172,9 @@ public class IncidentCommandMessageSourceTest {
         @Override
         public void commit(Handler<AsyncResult<Void>> completionHandler) {
             IncidentCommandMessageSourceTest.this.messageAck = true;
-
+            Promise<Void> future = Promise.promise();
+            future.future().onComplete(completionHandler);
+            future.complete(null);
         }
     }
 
