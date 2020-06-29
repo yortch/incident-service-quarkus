@@ -22,23 +22,23 @@ public class IncidentService {
     private static final Logger log = LoggerFactory.getLogger(IncidentService.class);
 
     @Inject
-    IncidentRepository incidentDao;
+    IncidentRepository repository;
 
     @Transactional
     public JsonArray incidents() {
-        return new JsonArray(incidentDao.findAll().stream().map(this::fromEntity).collect(Collectors.toList()));
+        return new JsonArray(repository.findAll().stream().map(this::fromEntity).collect(Collectors.toList()));
     }
 
     @Transactional
     public JsonObject create(JsonObject incident) {
-        Incident created = incidentDao.create(toEntity(incident));
+        Incident created = repository.create(toEntity(incident));
 
         return fromEntity(created);
     }
 
     @Transactional
     public JsonObject updateIncident(JsonObject incident) {
-        Incident current = incidentDao.findByIncidentId(incident.getString("id"));
+        Incident current = repository.findByIncidentId(incident.getString("id"));
         if (current == null) {
             log.warn("Incident with id '" + incident.getString("id") + "' not found in the database");
             return null;
@@ -69,22 +69,22 @@ public class IncidentService {
 
     @Transactional
     public JsonObject incidentByIncidentId(String incidentId) {
-        return fromEntity(incidentDao.findByIncidentId(incidentId));
+        return fromEntity(repository.findByIncidentId(incidentId));
     }
 
     @Transactional
     public JsonArray incidentsByStatus(String status) {
-        return new JsonArray(incidentDao.findByStatus(status).stream().map(this::fromEntity).collect(Collectors.toList()));
+        return new JsonArray(repository.findByStatus(status).stream().map(this::fromEntity).collect(Collectors.toList()));
     }
 
     @Transactional
     public JsonArray incidentsByVictimName(String name) {
-        return new JsonArray(incidentDao.findByName(name).stream().map(this::fromEntity).collect(Collectors.toList()));
+        return new JsonArray(repository.findByName(name).stream().map(this::fromEntity).collect(Collectors.toList()));
     }
 
     @Transactional
     public void reset() {
-        incidentDao.deleteAll();
+        repository.deleteAll();
     }
 
     private JsonObject fromEntity(Incident r) {
