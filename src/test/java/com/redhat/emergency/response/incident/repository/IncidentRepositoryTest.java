@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 public class IncidentRepositoryTest {
 
     @Inject
-    IncidentRepository incidentDao;
+    IncidentRepository repository;
 
     @Inject
     EntityManager entityManager;
@@ -63,7 +63,7 @@ public class IncidentRepositoryTest {
         incident.setReportedTime(Instant.now());
         incident.setStatus("REPORTED");
 
-        incidentDao.create(incident);
+        repository.create(incident);
         assertThat(incident.getId(), not(equalTo(0)));
     }
 
@@ -117,7 +117,7 @@ public class IncidentRepositoryTest {
 
         createIncidents(Arrays.asList(incident1, incident2, incident3));
 
-        List<Incident> incidents = new TransactionTemplate(transaction).execute(() -> incidentDao.findAll());
+        List<Incident> incidents = new TransactionTemplate(transaction).execute(() -> repository.findAll());
         assertThat(incidents.size(), equalTo(3));
         assertThat(incidents.get(0).getIncidentId(), anyOf(equalTo("incident1"), equalTo("incident2"), equalTo("incident3")));
         Incident matched = incidents.stream().filter(incident -> incident.getIncidentId().equals("incident1")).findFirst().orElse(null);
@@ -147,7 +147,7 @@ public class IncidentRepositoryTest {
     @Transactional
     void testFindAllNoIncidents() {
 
-        List<Incident> incidents = incidentDao.findAll();
+        List<Incident> incidents = repository.findAll();
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(0));
     }
@@ -202,7 +202,7 @@ public class IncidentRepositoryTest {
 
         createIncidents(Arrays.asList(incident1, incident2, incident3));
 
-        Incident found = new TransactionTemplate(transaction).execute(() -> incidentDao.findByIncidentId("incident2"));
+        Incident found = new TransactionTemplate(transaction).execute(() -> repository.findByIncidentId("incident2"));
         assertThat(found, notNullValue());
         assertThat(found.getIncidentId(), equalTo(incident2.getIncidentId()));
         assertThat(found.getVictimName(), equalTo(incident2.getVictimName()));
@@ -264,7 +264,7 @@ public class IncidentRepositoryTest {
 
         createIncidents(Arrays.asList(incident1, incident2, incident3));
 
-        Incident found = new TransactionTemplate(transaction).execute(() -> incidentDao.findByIncidentId("incident4"));
+        Incident found = new TransactionTemplate(transaction).execute(() -> repository.findByIncidentId("incident4"));
         assertThat(found, nullValue());
     }
 
@@ -318,7 +318,7 @@ public class IncidentRepositoryTest {
 
         createIncidents(Arrays.asList(incident1, incident2, incident3));
 
-        List<Incident> incidents = new TransactionTemplate(transaction).execute(() ->incidentDao.findByStatus("ASSIGNED"));
+        List<Incident> incidents = new TransactionTemplate(transaction).execute(() -> repository.findByStatus("ASSIGNED"));
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(1));
         Incident found = incidents.get(0);
@@ -382,7 +382,7 @@ public class IncidentRepositoryTest {
 
         createIncidents(Arrays.asList(incident1, incident2, incident3));
 
-        List<Incident> incidents = new TransactionTemplate(transaction).execute(() ->incidentDao.findByStatus("UNKNOWN"));
+        List<Incident> incidents = new TransactionTemplate(transaction).execute(() -> repository.findByStatus("UNKNOWN"));
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(0));
     }
@@ -439,7 +439,7 @@ public class IncidentRepositoryTest {
 
         createIncidents(Arrays.asList(incident1, incident2, incident3));
 
-        List<Incident> incidents = new TransactionTemplate(transaction).execute(() ->incidentDao.findByName("Jane Foo"));
+        List<Incident> incidents = new TransactionTemplate(transaction).execute(() -> repository.findByName("Jane Foo"));
         assertThat(incidents.size(), equalTo(1));
         Incident matched = incidents.get(0);
         assertThat(matched.getIncidentId(), equalTo(incident2.getIncidentId()));
@@ -503,7 +503,7 @@ public class IncidentRepositoryTest {
 
         createIncidents(Arrays.asList(incident1, incident2, incident3));
 
-        List<Incident> incidents = new TransactionTemplate(transaction).execute(() ->incidentDao.findByName("Jane%"));
+        List<Incident> incidents = new TransactionTemplate(transaction).execute(() -> repository.findByName("Jane%"));
         assertThat(incidents.size(), equalTo(2));
         incidents.forEach(i -> assertThat(i.getVictimName(), startsWith("Jane")));
     }
@@ -513,7 +513,7 @@ public class IncidentRepositoryTest {
         createIncidents();
         assertThat(getAllIncidents().size(), equalTo(3));
         new TransactionTemplate(transaction).execute(() -> {
-            incidentDao.deleteAll();
+            repository.deleteAll();
             return null;
         });
         assertThat(getAllIncidents().size(), equalTo(0));

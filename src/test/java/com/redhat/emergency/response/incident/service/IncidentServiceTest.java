@@ -32,7 +32,7 @@ import org.mockito.Mockito;
 public class IncidentServiceTest {
 
     @InjectMock
-    IncidentRepository incidentDao;
+    IncidentRepository repository;
 
     @Inject
     IncidentService incidentService;
@@ -81,7 +81,7 @@ public class IncidentServiceTest {
         incident3.setReportedTime(Instant.now());
         incident3.setStatus("RESCUED");
 
-        when(incidentDao.findAll()).thenReturn(Arrays.asList(incident1, incident2, incident3));
+        when(repository.findAll()).thenReturn(Arrays.asList(incident1, incident2, incident3));
 
         JsonArray incidents = incidentService.incidents();
 
@@ -114,7 +114,7 @@ public class IncidentServiceTest {
         incidentEntity.setReportedTime(Instant.now());
         incidentEntity.setStatus("REPORTED");
 
-        when(incidentDao.create(Mockito.any(Incident.class))).thenReturn(incidentEntity);
+        when(repository.create(Mockito.any(Incident.class))).thenReturn(incidentEntity);
 
         JsonObject incident = new JsonObject()
                 .put("lat", new BigDecimal("31.12345").doubleValue())
@@ -137,7 +137,7 @@ public class IncidentServiceTest {
         assertThat(created.getLong("timestamp"), equalTo(incidentEntity.getTimestamp()));
         assertThat(created.getString("status"), equalTo(incidentEntity.getStatus()));
 
-        verify(incidentDao).create(incidentCaptor.capture());
+        verify(repository).create(incidentCaptor.capture());
         Incident captured = incidentCaptor.getValue();
         assertThat(captured, notNullValue());
         assertThat(captured.getIncidentId().length(), equalTo(36));
@@ -164,7 +164,7 @@ public class IncidentServiceTest {
         incidentEntity.setReportedTime(Instant.now());
         incidentEntity.setStatus("REPORTED");
 
-        when(incidentDao.findByIncidentId("incident2")).thenReturn(incidentEntity);
+        when(repository.findByIncidentId("incident2")).thenReturn(incidentEntity);
 
         JsonObject incident = new JsonObject().put("id", "incident2")
                 .put("lat", new BigDecimal("32.12345").doubleValue())
@@ -185,7 +185,7 @@ public class IncidentServiceTest {
         assertThat(incidentEntity.getLatitude(), equalTo("32.12345"));
         assertThat(incidentEntity.getLongitude(), equalTo("-72.98765"));
         assertThat(incidentEntity.getStatus(), equalTo("ASSIGNED"));
-        verify(incidentDao).findByIncidentId("incident2");
+        verify(repository).findByIncidentId("incident2");
     }
 
     @Test
@@ -201,7 +201,7 @@ public class IncidentServiceTest {
         incidentEntity.setReportedTime(Instant.now());
         incidentEntity.setStatus("REPORTED");
 
-        when(incidentDao.findByIncidentId("incident2")).thenReturn(incidentEntity);
+        when(repository.findByIncidentId("incident2")).thenReturn(incidentEntity);
 
         JsonObject found = incidentService.incidentByIncidentId("incident2");
 
@@ -215,19 +215,19 @@ public class IncidentServiceTest {
         assertThat(found.getString("victimPhoneNumber"), equalTo(incidentEntity.getVictimPhoneNumber()));
         assertThat(found.getLong("timestamp"), equalTo(incidentEntity.getTimestamp()));
         assertThat(found.getString("status"), equalTo(incidentEntity.getStatus()));
-        verify(incidentDao).findByIncidentId("incident2");
+        verify(repository).findByIncidentId("incident2");
     }
 
 
     @Test
     void testIncidentByIdNotFound() {
 
-        when(incidentDao.findByIncidentId("incident2")).thenReturn(null);
+        when(repository.findByIncidentId("incident2")).thenReturn(null);
 
         JsonObject found = incidentService.incidentByIncidentId("incident2");
 
         assertThat(found, nullValue());
-        verify(incidentDao).findByIncidentId("incident2");
+        verify(repository).findByIncidentId("incident2");
     }
 
     @Test
@@ -255,7 +255,7 @@ public class IncidentServiceTest {
         incidentEntity2.setReportedTime(Instant.now());
         incidentEntity2.setStatus("REPORTED");
 
-        when(incidentDao.findByStatus("REPORTED")).thenReturn(Arrays.asList(incidentEntity, incidentEntity2));
+        when(repository.findByStatus("REPORTED")).thenReturn(Arrays.asList(incidentEntity, incidentEntity2));
 
         JsonArray incidents = incidentService.incidentsByStatus("REPORTED");
 
@@ -274,20 +274,20 @@ public class IncidentServiceTest {
         assertThat(found.getString("victimPhoneNumber"), equalTo(incidentEntity2.getVictimPhoneNumber()));
         assertThat(found.getLong("timestamp"), equalTo(incidentEntity2.getTimestamp()));
         assertThat(found.getString("status"), equalTo(incidentEntity2.getStatus()));
-        verify(incidentDao).findByStatus("REPORTED");
+        verify(repository).findByStatus("REPORTED");
     }
 
     @Test
     void testIncidentByStatusNotFound() {
 
-        when(incidentDao.findByStatus("REPORTED")).thenReturn(Collections.emptyList());
+        when(repository.findByStatus("REPORTED")).thenReturn(Collections.emptyList());
 
         JsonArray incidents = incidentService.incidentsByStatus("REPORTED");
 
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(0));
 
-        verify(incidentDao).findByStatus("REPORTED");
+        verify(repository).findByStatus("REPORTED");
     }
 
     @Test
@@ -315,7 +315,7 @@ public class IncidentServiceTest {
         incidentEntity2.setReportedTime(Instant.now());
         incidentEntity2.setStatus("REPORTED");
 
-        when(incidentDao.findByName("John%")).thenReturn(Arrays.asList(incidentEntity, incidentEntity2));
+        when(repository.findByName("John%")).thenReturn(Arrays.asList(incidentEntity, incidentEntity2));
 
         JsonArray incidents = incidentService.incidentsByVictimName("John%");
 
@@ -335,19 +335,19 @@ public class IncidentServiceTest {
         assertThat(found.getLong("timestamp"), equalTo(incidentEntity2.getTimestamp()));
         assertThat(found.getString("status"), equalTo(incidentEntity2.getStatus()));
 
-        verify(incidentDao).findByName("John%");
+        verify(repository).findByName("John%");
     }
 
     @Test
     void testIncidentByVictimNameNotFound() {
 
-        when(incidentDao.findByName("John%")).thenReturn(Collections.emptyList());
+        when(repository.findByName("John%")).thenReturn(Collections.emptyList());
 
         JsonArray incidents = incidentService.incidentsByVictimName("John%");
 
         assertThat(incidents, notNullValue());
         assertThat(incidents.size(), equalTo(0));
-        verify(incidentDao).findByName("John%");
+        verify(repository).findByName("John%");
     }
 
     @Test
@@ -355,7 +355,7 @@ public class IncidentServiceTest {
 
         incidentService.reset();
 
-        verify(incidentDao).deleteAll();
+        verify(repository).deleteAll();
     }
 
 
