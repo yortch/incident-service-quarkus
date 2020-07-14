@@ -1,6 +1,7 @@
 package com.redhat.emergency.response.incident.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -109,8 +110,8 @@ public class IncidentService {
 
         Incident entity = new Incident();
         entity.setIncidentId(incidentId);
-        entity.setLatitude(incident.getDouble("lat") != null ? incident.getDouble("lat").toString() : null);
-        entity.setLongitude(incident.getDouble("lon") != null ? incident.getDouble("lon").toString() : null);
+        entity.setLatitude(incident.getDouble("lat") != null ? BigDecimal.valueOf(incident.getDouble("lat")).setScale(5, RoundingMode.HALF_UP).toString() : null);
+        entity.setLongitude(incident.getDouble("lon") != null ? BigDecimal.valueOf(incident.getDouble("lon")).setScale(5, RoundingMode.HALF_UP).toString() : null);
         entity.setMedicalNeeded(incident.getBoolean("medicalNeeded"));
         entity.setNumberOfPeople(incident.getInteger("numberOfPeople"));
         entity.setVictimName(incident.getString("victimName"));

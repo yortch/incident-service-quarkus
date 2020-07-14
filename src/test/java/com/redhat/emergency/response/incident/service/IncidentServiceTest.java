@@ -151,6 +151,39 @@ public class IncidentServiceTest {
     }
 
     @Test
+    void testCreateScaleLatLon() {
+
+        Incident incidentEntity = new Incident();
+        incidentEntity.setIncidentId("incident2");
+        incidentEntity.setLatitude("31.12346");
+        incidentEntity.setLongitude("-71.98765");
+        incidentEntity.setNumberOfPeople(4);
+        incidentEntity.setMedicalNeeded(true);
+        incidentEntity.setVictimName("John Doe");
+        incidentEntity.setVictimPhoneNumber("(211) 456-78990");
+        incidentEntity.setReportedTime(Instant.now());
+        incidentEntity.setStatus("REPORTED");
+
+        when(repository.create(Mockito.any(Incident.class))).thenReturn(incidentEntity);
+
+        JsonObject incident = new JsonObject()
+                .put("lat", new BigDecimal("31.12345678").doubleValue())
+                .put("lon", new BigDecimal("-71.98765432").doubleValue())
+                .put("numberOfPeople", 4)
+                .put("medicalNeeded", true)
+                .put("victimName", "John Doe")
+                .put("victimPhoneNumber", "(211) 456-78990");
+
+        incidentService.create(incident);
+
+        verify(repository).create(incidentCaptor.capture());
+        Incident captured = incidentCaptor.getValue();
+        assertThat(captured, notNullValue());
+        assertThat(captured.getLatitude(), equalTo("31.12346"));
+        assertThat(captured.getLongitude(), equalTo("-71.98765"));
+    }
+
+    @Test
     void testUpdateIncident() {
 
         Incident incidentEntity = new Incident();
