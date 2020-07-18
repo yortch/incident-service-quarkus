@@ -7,8 +7,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 
 import com.redhat.emergency.response.incident.message.IncidentEvent;
 import com.redhat.emergency.response.incident.message.Message;
@@ -17,8 +15,8 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.mutiny.core.Vertx;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
@@ -37,9 +35,6 @@ public class IncidentCommandMessageSource {
 
     @Inject
     IncidentService incidentService;
-
-    @Inject
-    Vertx vertx;
 
     @Incoming("incident-command")
     @Acknowledgment(Acknowledgment.Strategy.MANUAL)
@@ -99,9 +94,7 @@ public class IncidentCommandMessageSource {
                         .status(incident.getString("status"))
                         .build())
                 .build();
-        Jsonb jsonb = null;
-        jsonb = JsonbBuilder.create();
-        String json = jsonb.toJson(message);
+        String json = Json.encode(message);
         log.debug("Message: " + json);
         return KafkaRecord.of(incident.getString("id"), json);
     }

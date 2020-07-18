@@ -63,7 +63,7 @@ public class EventBusConsumerTest {
         messageReplyBody = null;
         messageFailed = false;
         failureMessage = null;
-        connector.sink("incident-event").clear();
+        connector.sink("incident-event-1").clear();
     }
 
     @Test
@@ -323,7 +323,7 @@ public class EventBusConsumerTest {
 
         when(incidentService.create(Mockito.any(JsonObject.class))).thenReturn(incident);
 
-        InMemorySink<String> results = connector.sink("incident-event");
+        InMemorySink<String> results = connector.sink("incident-event-1");
 
         Message<JsonObject> message = buildMessage(toCreate, Collections.singletonMap("action", "createIncident"));
         eventBusConsumer.consume(message);
