@@ -3,14 +3,13 @@ package com.redhat.emergency.response.incident.service;
 import java.math.BigDecimal;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 
 import com.redhat.emergency.response.incident.message.IncidentEvent;
 import io.quarkus.vertx.ConsumeEvent;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.eventbus.Message;
@@ -95,7 +94,7 @@ public class EventBusConsumer {
         msg.replyAndForget(new JsonObject());
     }
 
-    @Outgoing("incident-event")
+    @Outgoing("incident-event-1")
     public Multi<org.eclipse.microprofile.reactive.messaging.Message<String>> source() {
         return processor.onItem().apply(this::toMessage);
     }
@@ -114,8 +113,7 @@ public class EventBusConsumer {
                         .status(incident.getString("status"))
                         .build())
                 .build();
-        Jsonb jsonb = JsonbBuilder.create();
-        String json = jsonb.toJson(message);
+        String json = Json.encode(message);
         log.debug("Message: " + json);
         return KafkaRecord.of(incident.getString("id"), json);
 
