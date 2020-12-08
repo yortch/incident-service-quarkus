@@ -8,7 +8,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,8 +16,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import javax.inject.Inject;
 
-import com.redhat.emergency.response.incident.repository.IncidentRepository;
 import com.redhat.emergency.response.incident.entity.Incident;
+import com.redhat.emergency.response.incident.repository.IncidentRepository;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.vertx.core.json.JsonArray;
@@ -42,7 +42,7 @@ public class IncidentServiceTest {
 
     @BeforeEach
     void init() {
-        initMocks(this);
+        openMocks(this);
     }
 
     @Test

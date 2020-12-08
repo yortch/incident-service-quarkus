@@ -50,7 +50,6 @@ public class IncidentCommandMessageSource {
         });
     }
 
-    @SuppressWarnings("unchecked")
     private void processUpdateIncidentCommand(JsonObject json) {
 
         JsonObject body = json.getJsonObject("body").getJsonObject("incident");
@@ -78,7 +77,7 @@ public class IncidentCommandMessageSource {
 
     @Outgoing("incident-event")
     public Multi<org.eclipse.microprofile.reactive.messaging.Message<String>> source() {
-        return processor.onItem().apply(this::toMessage);
+        return processor.onItem().transform(this::toMessage);
     }
 
     private org.eclipse.microprofile.reactive.messaging.Message<String> toMessage(JsonObject incident) {

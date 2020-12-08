@@ -9,7 +9,7 @@ import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -24,6 +24,9 @@ import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.reactive.messaging.connectors.InMemoryConnector;
 import io.smallrye.reactive.messaging.connectors.InMemorySink;
 import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.impl.EventBusImpl;
+import io.vertx.core.impl.VertxInternal;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mutiny.core.eventbus.Message;
@@ -45,6 +48,9 @@ public class EventBusConsumerTest {
     @Inject @Any
     InMemoryConnector connector;
 
+    @Inject
+    Vertx vertx;
+
     @Captor
     ArgumentCaptor<JsonObject> jsonObjectCaptor;
 
@@ -58,7 +64,7 @@ public class EventBusConsumerTest {
 
     @BeforeEach
     void init() {
-        initMocks(this);
+        openMocks(this);
         messageReplyCalled = false;
         messageReplyBody = null;
         messageFailed = false;
@@ -383,6 +389,7 @@ public class EventBusConsumerTest {
     private class MessageImpl<U, V> extends io.vertx.core.eventbus.impl.MessageImpl<U, V> {
 
         public MessageImpl(V body) {
+            super(new EventBusImpl((VertxInternal) vertx));
             this.receivedBody = body;
         }
 

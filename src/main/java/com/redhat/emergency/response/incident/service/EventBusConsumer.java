@@ -96,7 +96,7 @@ public class EventBusConsumer {
 
     @Outgoing("incident-event-1")
     public Multi<org.eclipse.microprofile.reactive.messaging.Message<String>> source() {
-        return processor.onItem().apply(this::toMessage);
+        return processor.onItem().transform(this::toMessage);
     }
 
     private org.eclipse.microprofile.reactive.messaging.Message<String> toMessage(JsonObject incident) {

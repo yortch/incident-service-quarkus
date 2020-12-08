@@ -7,7 +7,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 import java.time.Instant;
 
@@ -36,7 +36,7 @@ public class IncidentsResourceTest {
 
     @BeforeEach
     void init() {
-        initMocks(this);
+        openMocks(this);
     }
 
     @Test
