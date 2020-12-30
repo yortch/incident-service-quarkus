@@ -125,8 +125,8 @@ public class IncidentService {
             return null;
         }
         return new JsonObject().put("id", r.getIncidentId())
-                .put("lat", r.getLatitude())
-                .put("lon", r.getLongitude())
+                .put("lat", new BigDecimal(r.getLatitude()).doubleValue())
+                .put("lon", new BigDecimal(r.getLongitude()).doubleValue())
                 .put("medicalNeeded", r.isMedicalNeeded())
                 .put("numberOfPeople", r.getNumberOfPeople())
                 .put("victimName", r.getVictimName())

@@ -1,8 +1,6 @@
 package com.redhat.emergency.response.incident.service;
 
-import static net.javacrumbs.jsonunit.JsonMatchers.jsonNodePresent;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isA;
@@ -21,9 +19,10 @@ import javax.inject.Inject;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.smallrye.reactive.messaging.ce.impl.DefaultOutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.connectors.InMemoryConnector;
 import io.smallrye.reactive.messaging.connectors.InMemorySink;
-import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.impl.EventBusImpl;
 import io.vertx.core.impl.VertxInternal;
@@ -310,8 +309,8 @@ public class EventBusConsumerTest {
 
         JsonObject incident = new JsonObject()
                 .put("id", "incident1")
-                .put("lat", "30.12345")
-                .put("lon", "-70.98765")
+                .put("lat", 30.12345)
+                .put("lon", -70.98765)
                 .put("numberOfPeople", 3)
                 .put("medicalNeeded", true)
                 .put("victimName", "John Doe")
@@ -342,24 +341,32 @@ public class EventBusConsumerTest {
 
         assertThat(results.received().size(), equalTo(1));
         org.eclipse.microprofile.reactive.messaging.Message<String> record = results.received().get(0);
-        assertThat(record, instanceOf(OutgoingKafkaRecord.class));
         String value = record.getPayload();
-        String key = ((OutgoingKafkaRecord<String, String>)record).getKey();
+        assertThat(value, jsonPartEquals("id", incident.getString("id")));
+        assertThat(value, jsonPartEquals("lat", BigDecimal.valueOf(incident.getDouble("lat"))));
+        assertThat(value, jsonPartEquals("lon", BigDecimal.valueOf(incident.getDouble("lon"))));
+        assertThat(value, jsonPartEquals("medicalNeeded", incident.getBoolean("medicalNeeded")));
+        assertThat(value, jsonPartEquals("numberOfPeople", incident.getInteger("numberOfPeople")));
+        assertThat(value, jsonPartEquals("victimName", incident.getString("victimName")));
+        assertThat(value, jsonPartEquals("victimPhoneNumber", incident.getString("victimPhoneNumber")));
+        assertThat(value, jsonPartEquals("status", incident.getString("status")));
+        assertThat(value, jsonPartEquals("timestamp", incident.getLong("timestamp")));
+        OutgoingKafkaRecordMetadata outgoingKafkaRecordMetadata = null;
+        DefaultOutgoingCloudEventMetadata outgoingCloudEventMetadata = null;
+        for (Object next : record.getMetadata()) {
+            if (next instanceof OutgoingKafkaRecordMetadata) {
+                outgoingKafkaRecordMetadata = (OutgoingKafkaRecordMetadata) next;
+            } else if (next instanceof DefaultOutgoingCloudEventMetadata) {
+                outgoingCloudEventMetadata = (DefaultOutgoingCloudEventMetadata) next;
+            }
+        }
+        assertThat(outgoingCloudEventMetadata, notNullValue());
+        assertThat(outgoingKafkaRecordMetadata, notNullValue());
+        String key = (String) outgoingKafkaRecordMetadata.getKey();
         assertThat(key, equalTo(incident.getString("id")));
-        assertThat(value, jsonNodePresent("id"));
-        assertThat(value, jsonPartEquals("messageType", "IncidentReportedEvent"));
-        assertThat(value, jsonPartEquals("invokingService", "IncidentService"));
-        assertThat(value, jsonNodePresent("timestamp"));
-        assertThat(value, jsonNodePresent("body"));
-        assertThat(value, jsonPartEquals("body.id", incident.getString("id")));
-        assertThat(value, jsonPartEquals("body.lat", new BigDecimal(incident.getString("lat")).doubleValue()));
-        assertThat(value, jsonPartEquals("body.lon", new BigDecimal(incident.getString("lon")).doubleValue()));
-        assertThat(value, jsonPartEquals("body.medicalNeeded", incident.getBoolean("medicalNeeded")));
-        assertThat(value, jsonPartEquals("body.numberOfPeople", incident.getInteger("numberOfPeople")));
-        assertThat(value, jsonPartEquals("body.victimName", incident.getString("victimName")));
-        assertThat(value, jsonPartEquals("body.victimPhoneNumber", incident.getString("victimPhoneNumber")));
-        assertThat(value, jsonPartEquals("body.status", incident.getString("status")));
-        assertThat(value, jsonPartEquals("body.timestamp", incident.getLong("timestamp")));
+        assertThat(outgoingCloudEventMetadata.getId(), notNullValue());
+        assertThat(outgoingCloudEventMetadata.getSpecVersion(), equalTo("1.0"));
+        assertThat(outgoingCloudEventMetadata.getType(), equalTo("IncidentReportedEvent"));
         verify(incidentService).create(jsonObjectCaptor.capture());
         JsonObject captured = jsonObjectCaptor.getValue();
         assertThat(captured, notNullValue());

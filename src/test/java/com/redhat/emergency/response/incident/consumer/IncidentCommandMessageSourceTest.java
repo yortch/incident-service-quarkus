@@ -1,10 +1,8 @@
 package com.redhat.emergency.response.incident.consumer;
 
-import static net.javacrumbs.jsonunit.JsonMatchers.jsonNodePresent;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,10 +23,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.vertx.AsyncResultUni;
+import io.smallrye.reactive.messaging.ce.impl.DefaultOutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.connectors.InMemoryConnector;
 import io.smallrye.reactive.messaging.connectors.InMemorySink;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
-import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecord;
+import io.smallrye.reactive.messaging.kafka.OutgoingKafkaRecordMetadata;
 import io.smallrye.reactive.messaging.kafka.commit.KafkaCommitHandler;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -38,9 +37,10 @@ import io.vertx.kafka.client.consumer.KafkaReadStream;
 import io.vertx.kafka.client.consumer.impl.KafkaConsumerImpl;
 import io.vertx.kafka.client.consumer.impl.KafkaConsumerRecordImpl;
 import io.vertx.kafka.client.consumer.impl.KafkaReadStreamImpl;
-import io.vertx.mutiny.kafka.client.consumer.KafkaConsumer;
 import io.vertx.mutiny.kafka.client.consumer.KafkaConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.internals.RecordHeaders;
+import org.apache.kafka.common.record.TimestampType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -73,22 +73,17 @@ public class IncidentCommandMessageSourceTest {
     @Test
     void testProcessUpdateIncidentCommand() throws ExecutionException, InterruptedException {
 
-        String json = "{\"messageType\" : \"UpdateIncidentCommand\"," +
-                "\"id\" : \"messageId\"," +
-                "\"invokingService\" : \"messageSender\"," +
-                "\"timestamp\" : 1521148332397," +
-                "\"body\" : {" +
+        String json = "{" +
                 "\"incident\" : {" +
                 "\"id\" : \"incident1\"," +
                 "\"status\" : \"ASSIGNED\"" +
-                "} " +
                 "} " +
                 "}";
 
         JsonObject updated = new JsonObject()
                 .put("id", "incident1")
-                .put("lat", "30.12345")
-                .put("lon", "-70.98765")
+                .put("lat", 30.12345)
+                .put("lon", -70.98765)
                 .put("numberOfPeople", 3)
                 .put("medicalNeeded", true)
                 .put("victimName", "John Doe")
@@ -99,7 +94,7 @@ public class IncidentCommandMessageSourceTest {
         when(incidentService.updateIncident(any(JsonObject.class))).thenReturn(updated);
         InMemorySink<String> results = connector.sink("incident-event");
 
-        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json));
+        CompletionStage<CompletionStage<Void>> c = source.processMessage(toRecord("incident1", json, true, "UpdateIncidentCommand"));
         c.toCompletableFuture().get();
 
         verify(incidentService).updateIncident(jsonObjectCaptor.capture());
@@ -113,39 +108,42 @@ public class IncidentCommandMessageSourceTest {
 
         assertThat(results.received().size(), equalTo(1));
         org.eclipse.microprofile.reactive.messaging.Message<String> record = results.received().get(0);
-        assertThat(record, instanceOf(OutgoingKafkaRecord.class));
         String value = record.getPayload();
-        String key = ((OutgoingKafkaRecord<String, String>)record).getKey();
+        assertThat(value, jsonPartEquals("id", updated.getString("id")));
+        assertThat(value, jsonPartEquals("lat", BigDecimal.valueOf(updated.getDouble("lat"))));
+        assertThat(value, jsonPartEquals("lon", BigDecimal.valueOf(updated.getDouble("lon"))));
+        assertThat(value, jsonPartEquals("medicalNeeded", updated.getBoolean("medicalNeeded")));
+        assertThat(value, jsonPartEquals("numberOfPeople", updated.getInteger("numberOfPeople")));
+        assertThat(value, jsonPartEquals("victimName", updated.getString("victimName")));
+        assertThat(value, jsonPartEquals("victimPhoneNumber", updated.getString("victimPhoneNumber")));
+        assertThat(value, jsonPartEquals("status", updated.getString("status")));
+        assertThat(value, jsonPartEquals("timestamp", updated.getLong("timestamp")));
+        OutgoingKafkaRecordMetadata outgoingKafkaRecordMetadata = null;
+        DefaultOutgoingCloudEventMetadata outgoingCloudEventMetadata = null;
+        for (Object next : record.getMetadata()) {
+            if (next instanceof OutgoingKafkaRecordMetadata) {
+                outgoingKafkaRecordMetadata = (OutgoingKafkaRecordMetadata) next;
+            } else if (next instanceof DefaultOutgoingCloudEventMetadata) {
+                outgoingCloudEventMetadata = (DefaultOutgoingCloudEventMetadata) next;
+            }
+        }
+        assertThat(outgoingCloudEventMetadata, notNullValue());
+        assertThat(outgoingKafkaRecordMetadata, notNullValue());
+        String key = (String) outgoingKafkaRecordMetadata.getKey();
         assertThat(key, equalTo(updated.getString("id")));
-        assertThat(value, jsonNodePresent("id"));
-        assertThat(value, jsonPartEquals("messageType", "IncidentUpdatedEvent"));
-        assertThat(value, jsonPartEquals("invokingService", "IncidentService"));
-        assertThat(value, jsonNodePresent("timestamp"));
-        assertThat(value, jsonNodePresent("body"));
-        assertThat(value, jsonPartEquals("body.id", updated.getString("id")));
-        assertThat(value, jsonPartEquals("body.lat", new BigDecimal(updated.getString("lat")).doubleValue()));
-        assertThat(value, jsonPartEquals("body.lon", new BigDecimal(updated.getString("lon")).doubleValue()));
-        assertThat(value, jsonPartEquals("body.medicalNeeded", updated.getBoolean("medicalNeeded")));
-        assertThat(value, jsonPartEquals("body.numberOfPeople", updated.getInteger("numberOfPeople")));
-        assertThat(value, jsonPartEquals("body.victimName", updated.getString("victimName")));
-        assertThat(value, jsonPartEquals("body.victimPhoneNumber", updated.getString("victimPhoneNumber")));
-        assertThat(value, jsonPartEquals("body.status", updated.getString("status")));
-        assertThat(value, jsonPartEquals("body.timestamp", updated.getLong("timestamp")));
+        assertThat(outgoingCloudEventMetadata.getId(), notNullValue());
+        assertThat(outgoingCloudEventMetadata.getSpecVersion(), equalTo("1.0"));
+        assertThat(outgoingCloudEventMetadata.getType(), equalTo("IncidentUpdatedEvent"));
     }
 
     @Test
     public void testProcessMessageWrongMessageType() throws ExecutionException, InterruptedException {
 
-        String json = "{\"messageType\":\"WrongType\"," +
-                "\"id\":\"messageId\"," +
-                "\"invokingService\":\"messageSender\"," +
-                "\"timestamp\":1521148332397," +
-                "\"body\":{} " +
-                "}";
+        String json = "{}";
 
         InMemorySink<String> results = connector.sink("incident-event");
 
-        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json));
+        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, true, "WrongType"));
         c.toCompletableFuture().get();
 
         verify(incidentService, never()).updateIncident(any(JsonObject.class));
@@ -153,11 +151,36 @@ public class IncidentCommandMessageSourceTest {
         assertThat(results.received().size(), equalTo(0));
     }
 
-    private IncomingKafkaRecord<String, String> toRecord(String key, String payload) {
+    @Test
+    public void testProcessMessageNotACloudEvent() throws ExecutionException, InterruptedException {
 
+        String json = "{}";
+
+        InMemorySink<String> results = connector.sink("incident-event");
+
+        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, false, "WrongType"));
+        c.toCompletableFuture().get();
+
+        verify(incidentService, never()).updateIncident(any(JsonObject.class));
+        assertThat(messageAck, equalTo(true));
+        assertThat(results.received().size(), equalTo(0));
+    }
+
+    private IncomingKafkaRecord<String, String> toRecord(String key, String payload, boolean cloudEvent, String type) {
         MockKafkaConsumer<String, String> mc = new MockKafkaConsumer<>();
-        KafkaConsumer<String, String> c = new KafkaConsumer<>(mc);
-        ConsumerRecord<String, String> cr = new ConsumerRecord<>("topic", 1, 100, key, payload);
+        ConsumerRecord<String, String> cr;
+        if (cloudEvent) {
+            RecordHeaders headers = new RecordHeaders();
+            headers.add("ce_specversion", "1.0".getBytes());
+            headers.add("ce_id", "18cb49fe-9353-4856-9a0c-d66fe1237c86".getBytes());
+            headers.add("ce_type", type.getBytes());
+            headers.add("ce_source", "test".getBytes());
+            headers.add("ce_time", "2020-12-30T19:54:20.765566GMT".getBytes());
+            cr = new ConsumerRecord<>("topic", 1, 100, ConsumerRecord.NO_TIMESTAMP, TimestampType.NO_TIMESTAMP_TYPE,
+                    (long) ConsumerRecord.NULL_CHECKSUM, ConsumerRecord.NULL_SIZE, ConsumerRecord.NULL_SIZE, key, payload, headers);
+        } else {
+            cr = new ConsumerRecord<>("topic", 1, 100, key, payload);
+        }
         KafkaConsumerRecord<String, String> kcr = new KafkaConsumerRecord<>(new KafkaConsumerRecordImpl<>(cr));
         KafkaCommitHandler kch = new KafkaCommitHandler() {
             @Override
@@ -166,13 +189,13 @@ public class IncidentCommandMessageSourceTest {
                 return uni.subscribeAsCompletionStage();
             }
         };
-        return new IncomingKafkaRecord<String, String>(kcr, kch, null, false, false);
+        return new IncomingKafkaRecord<>(kcr, kch, null, true, false);
     }
 
     private class MockKafkaConsumer<K, V> extends KafkaConsumerImpl<K, V> {
 
         public MockKafkaConsumer() {
-            super(new KafkaReadStreamImpl<K, V>(null, null));
+            super(new KafkaReadStreamImpl<>(null, null));
         }
 
         public MockKafkaConsumer(KafkaReadStream<K, V> stream) {

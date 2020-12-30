@@ -90,8 +90,8 @@ public class IncidentServiceTest {
         assertThat(incidents.getJsonObject(0).getString("id"), anyOf(equalTo("incident1"), equalTo("incident2"),equalTo("incident3")));
         JsonObject matched = (JsonObject) incidents.stream().filter(o -> ((JsonObject) o).getString("id").equals("incident2")).findFirst().orElse(null);
         assertThat(matched, notNullValue());
-        assertThat(matched.getString("lat"), equalTo(incident2.getLatitude()));
-        assertThat(matched.getString("lon"), equalTo(incident2.getLongitude()));
+        assertThat(BigDecimal.valueOf(matched.getDouble("lat")).toString(), equalTo(incident2.getLatitude()));
+        assertThat(BigDecimal.valueOf(matched.getDouble("lon")).toString(), equalTo(incident2.getLongitude()));
         assertThat(matched.getBoolean("medicalNeeded"), equalTo(incident2.isMedicalNeeded()));
         assertThat(matched.getInteger("numberOfPeople"), equalTo(incident2.getNumberOfPeople()));
         assertThat(matched.getString("victimName"), equalTo(incident2.getVictimName()));
@@ -128,8 +128,8 @@ public class IncidentServiceTest {
 
         assertThat(created, notNullValue());
         assertThat(created.getString("id"), equalTo(incidentEntity.getIncidentId()));
-        assertThat(created.getString("lat"), equalTo(incidentEntity.getLatitude()));
-        assertThat(created.getString("lon"), equalTo(incidentEntity.getLongitude()));
+        assertThat(BigDecimal.valueOf(created.getDouble("lat")).toString(), equalTo(incidentEntity.getLatitude()));
+        assertThat(BigDecimal.valueOf(created.getDouble("lon")).toString(), equalTo(incidentEntity.getLongitude()));
         assertThat(created.getBoolean("medicalNeeded"), equalTo(incidentEntity.isMedicalNeeded()));
         assertThat(created.getInteger("numberOfPeople"), equalTo(incidentEntity.getNumberOfPeople()));
         assertThat(created.getString("victimName"), equalTo(incidentEntity.getVictimName()));
@@ -207,8 +207,8 @@ public class IncidentServiceTest {
         JsonObject updated = incidentService.updateIncident(incident);
         assertThat(updated, notNullValue());
         assertThat(updated.getString("id"), equalTo("incident2"));
-        assertThat(updated.getString("lat"), equalTo(incident.getDouble("lat").toString()));
-        assertThat(updated.getString("lon"), equalTo(incident.getDouble("lon").toString()));
+        assertThat(BigDecimal.valueOf(updated.getDouble("lat")), equalTo(BigDecimal.valueOf(incident.getDouble("lat"))));
+        assertThat(BigDecimal.valueOf(updated.getDouble("lon")), equalTo(BigDecimal.valueOf(incident.getDouble("lon"))));
         assertThat(updated.getString("status"), equalTo(incident.getString("status")));
         assertThat(updated.getInteger("numberOfPeople"), equalTo(incidentEntity.getNumberOfPeople()));
         assertThat(updated.getBoolean("medicalNeeded"), equalTo(incidentEntity.isMedicalNeeded()));
@@ -240,8 +240,8 @@ public class IncidentServiceTest {
 
         assertThat(found, notNullValue());
         assertThat(found.getString("id"), equalTo(incidentEntity.getIncidentId()));
-        assertThat(found.getString("lat"), equalTo(incidentEntity.getLatitude()));
-        assertThat(found.getString("lon"), equalTo(incidentEntity.getLongitude()));
+        assertThat(BigDecimal.valueOf(found.getDouble("lat")).toString(), equalTo(incidentEntity.getLatitude()));
+        assertThat(BigDecimal.valueOf(found.getDouble("lon")).toString(), equalTo(incidentEntity.getLongitude()));
         assertThat(found.getBoolean("medicalNeeded"), equalTo(incidentEntity.isMedicalNeeded()));
         assertThat(found.getInteger("numberOfPeople"), equalTo(incidentEntity.getNumberOfPeople()));
         assertThat(found.getString("victimName"), equalTo(incidentEntity.getVictimName()));
@@ -299,8 +299,8 @@ public class IncidentServiceTest {
         assertThat(incidents.getJsonObject(0), not(equalTo(incidents.getJsonObject(1))));
         JsonObject found = (JsonObject) incidents.stream().filter(o -> ((JsonObject) o).getString("id").equals("incident2")).findFirst().orElse(null);
         assertThat(found, notNullValue());
-        assertThat(found.getString("lat"), equalTo(incidentEntity2.getLatitude()));
-        assertThat(found.getString("lon"), equalTo(incidentEntity2.getLongitude()));
+        assertThat(BigDecimal.valueOf(found.getDouble("lat")).toString(), equalTo(incidentEntity2.getLatitude()));
+        assertThat(BigDecimal.valueOf(found.getDouble("lon")).toString(), equalTo(incidentEntity2.getLongitude()));
         assertThat(found.getBoolean("medicalNeeded"), equalTo(incidentEntity2.isMedicalNeeded()));
         assertThat(found.getInteger("numberOfPeople"), equalTo(incidentEntity2.getNumberOfPeople()));
         assertThat(found.getString("victimName"), equalTo(incidentEntity2.getVictimName()));
@@ -359,8 +359,8 @@ public class IncidentServiceTest {
         assertThat(incidents.getJsonObject(0), not(equalTo(incidents.getJsonObject(1))));
         JsonObject found = (JsonObject) incidents.stream().filter(o -> ((JsonObject) o).getString("id").equals("incident2")).findFirst().orElse(null);
         assertThat(found, notNullValue());
-        assertThat(found.getString("lat"), equalTo(incidentEntity2.getLatitude()));
-        assertThat(found.getString("lon"), equalTo(incidentEntity2.getLongitude()));
+        assertThat(BigDecimal.valueOf(found.getDouble("lat")).toString(), equalTo(incidentEntity2.getLatitude()));
+        assertThat(BigDecimal.valueOf(found.getDouble("lon")).toString(), equalTo(incidentEntity2.getLongitude()));
         assertThat(found.getBoolean("medicalNeeded"), equalTo(incidentEntity2.isMedicalNeeded()));
         assertThat(found.getInteger("numberOfPeople"), equalTo(incidentEntity2.getNumberOfPeople()));
         assertThat(found.getString("victimName"), equalTo(incidentEntity2.getVictimName()));
