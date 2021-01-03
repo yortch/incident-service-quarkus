@@ -3,6 +3,7 @@ package com.redhat.emergency.response.incident.consumer;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
@@ -134,6 +135,7 @@ public class IncidentCommandMessageSourceTest {
         assertThat(outgoingCloudEventMetadata.getId(), notNullValue());
         assertThat(outgoingCloudEventMetadata.getSpecVersion(), equalTo("1.0"));
         assertThat(outgoingCloudEventMetadata.getType(), equalTo("IncidentUpdatedEvent"));
+        assertThat(outgoingCloudEventMetadata.getTimeStamp().isPresent(), is(true));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.redhat.emergency.response.incident.service;
 
+import java.time.OffsetDateTime;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -100,6 +101,7 @@ public class EventBusConsumer {
     private org.eclipse.microprofile.reactive.messaging.Message<String> toMessage(JsonObject incident) {
         log.debug("IncidentReportedEvent: " + incident);
         return KafkaRecord.of(incident.getString("id"), incident.toString())
-                .addMetadata(OutgoingCloudEventMetadata.builder().withType("IncidentReportedEvent").build());
+                .addMetadata(OutgoingCloudEventMetadata.builder().withType("IncidentReportedEvent")
+                        .withTimestamp(OffsetDateTime.now().toZonedDateTime()).build());
     }
 }

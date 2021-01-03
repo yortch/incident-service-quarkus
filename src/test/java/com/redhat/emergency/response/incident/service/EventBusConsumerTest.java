@@ -3,6 +3,7 @@ package com.redhat.emergency.response.incident.service;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.verify;
@@ -367,6 +368,7 @@ public class EventBusConsumerTest {
         assertThat(outgoingCloudEventMetadata.getId(), notNullValue());
         assertThat(outgoingCloudEventMetadata.getSpecVersion(), equalTo("1.0"));
         assertThat(outgoingCloudEventMetadata.getType(), equalTo("IncidentReportedEvent"));
+        assertThat(outgoingCloudEventMetadata.getTimeStamp().isPresent(), is(true));
         verify(incidentService).create(jsonObjectCaptor.capture());
         JsonObject captured = jsonObjectCaptor.getValue();
         assertThat(captured, notNullValue());

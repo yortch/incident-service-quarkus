@@ -1,5 +1,6 @@
 package com.redhat.emergency.response.incident.consumer;
 
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -86,6 +87,7 @@ public class IncidentCommandMessageSource {
     private Message<String> toMessage(JsonObject incident) {
         log.debug("IncidentUpdatedEvent: " + incident.toString());
         return KafkaRecord.of(incident.getString("id"), incident.toString())
-                .addMetadata(OutgoingCloudEventMetadata.builder().withType("IncidentUpdatedEvent").build());
+                .addMetadata(OutgoingCloudEventMetadata.builder().withType("IncidentUpdatedEvent")
+                        .withTimestamp(OffsetDateTime.now().toZonedDateTime()).build());
     }
 }
