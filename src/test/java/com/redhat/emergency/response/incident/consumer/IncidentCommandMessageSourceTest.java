@@ -95,7 +95,7 @@ public class IncidentCommandMessageSourceTest {
         when(incidentService.updateIncident(any(JsonObject.class))).thenReturn(updated);
         InMemorySink<String> results = connector.sink("incident-event");
 
-        CompletionStage<CompletionStage<Void>> c = source.processMessage(toRecord("incident1", json, true, "UpdateIncidentCommand"));
+        CompletionStage<CompletionStage<Void>> c = source.processMessage(toRecord("incident1", json, true, "application/json","UpdateIncidentCommand"));
         c.toCompletableFuture().get();
 
         verify(incidentService).updateIncident(jsonObjectCaptor.capture());
@@ -145,7 +145,37 @@ public class IncidentCommandMessageSourceTest {
 
         InMemorySink<String> results = connector.sink("incident-event");
 
-        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, true, "WrongType"));
+        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, true, "application/json","WrongType"));
+        c.toCompletableFuture().get();
+
+        verify(incidentService, never()).updateIncident(any(JsonObject.class));
+        assertThat(messageAck, equalTo(true));
+        assertThat(results.received().size(), equalTo(0));
+    }
+
+    @Test
+    public void testProcessMessageWrongDataContentType() throws ExecutionException, InterruptedException {
+
+        String json = "{}";
+
+        InMemorySink<String> results = connector.sink("incident-event");
+
+        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, true, "application/avro", "UpdateIncidentCommand"));
+        c.toCompletableFuture().get();
+
+        verify(incidentService, never()).updateIncident(any(JsonObject.class));
+        assertThat(messageAck, equalTo(true));
+        assertThat(results.received().size(), equalTo(0));
+    }
+
+    @Test
+    public void testProcessMessageNoDataContentType() throws ExecutionException, InterruptedException {
+
+        String json = "{}";
+
+        InMemorySink<String> results = connector.sink("incident-event");
+
+        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, true, null, "UpdateIncidentCommand"));
         c.toCompletableFuture().get();
 
         verify(incidentService, never()).updateIncident(any(JsonObject.class));
@@ -160,7 +190,7 @@ public class IncidentCommandMessageSourceTest {
 
         InMemorySink<String> results = connector.sink("incident-event");
 
-        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, false, "WrongType"));
+        CompletionStage<CompletionStage<Void>> c =  source.processMessage(toRecord("incident1", json, false, null,"UpdateIncidentCommand"));
         c.toCompletableFuture().get();
 
         verify(incidentService, never()).updateIncident(any(JsonObject.class));
@@ -168,7 +198,7 @@ public class IncidentCommandMessageSourceTest {
         assertThat(results.received().size(), equalTo(0));
     }
 
-    private IncomingKafkaRecord<String, String> toRecord(String key, String payload, boolean cloudEvent, String type) {
+    private IncomingKafkaRecord<String, String> toRecord(String key, String payload, boolean cloudEvent, String dataContentType, String type) {
         MockKafkaConsumer<String, String> mc = new MockKafkaConsumer<>();
         ConsumerRecord<String, String> cr;
         if (cloudEvent) {
@@ -178,6 +208,11 @@ public class IncidentCommandMessageSourceTest {
             headers.add("ce_type", type.getBytes());
             headers.add("ce_source", "test".getBytes());
             headers.add("ce_time", "2020-12-30T19:54:20.765566GMT".getBytes());
+            if (dataContentType != null) {
+                headers.add("ce_datacontenttype", dataContentType.getBytes());
+                headers.add("content-type", dataContentType.getBytes());
+            }
+
             cr = new ConsumerRecord<>("topic", 1, 100, ConsumerRecord.NO_TIMESTAMP, TimestampType.NO_TIMESTAMP_TYPE,
                     (long) ConsumerRecord.NULL_CHECKSUM, ConsumerRecord.NULL_SIZE, ConsumerRecord.NULL_SIZE, key, payload, headers);
         } else {

@@ -63,20 +63,31 @@ public class IncidentCommandMessageSource {
             Optional<IncomingCloudEventMetadata> metadata = message.getMetadata(IncomingCloudEventMetadata.class);
             if (metadata.isEmpty()) {
                 log.warn("Incoming message is not a CloudEvent");
-            } else {
-                String type = metadata.get().getType();
-                if (Arrays.asList(ACCEPTED_MESSAGE_TYPES).contains(type)) {
-                    JsonObject json = new JsonObject(message.getPayload());
-                    if (json.containsKey("incident")) {
-                        return Optional.of(json);
-                    }
-                }
+                return Optional.empty();
+            }
+            IncomingCloudEventMetadata<String> cloudEventMetadata = metadata.get();
+            String dataContentType = cloudEventMetadata.getDataContentType().orElse("");
+            if (!dataContentType.equalsIgnoreCase("application/json")) {
+                log.warn("CloudEvent data content type is not specified or not 'application/json'. Message is ignored");
+                return Optional.empty();
+            }
+            String type = cloudEventMetadata.getType();
+            if (!(Arrays.asList(ACCEPTED_MESSAGE_TYPES).contains(type))) {
                 log.debug("CloudEvent with type '" + type + "' is ignored");
+                return Optional.empty();
+            }
+            JsonObject json = new JsonObject(message.getPayload());
+            if (json.containsKey("incident")) {
+                return Optional.of(json);
+            } else {
+                log.warn("Message payload does not contain incident: " + message.getPayload());
+                return Optional.empty();
             }
         } catch (Exception e) {
             log.warn("Unexpected message is ignored: " + message.getPayload());
+            return Optional.empty();
         }
-        return Optional.empty();
+
     }
 
     @Outgoing("incident-event")
