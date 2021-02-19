@@ -7,7 +7,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
-import static org.mockito.MockitoAnnotations.initMocks;
+import static org.mockito.MockitoAnnotations.openMocks;
 
 import java.time.Instant;
 
@@ -36,7 +36,7 @@ public class IncidentsResourceTest {
 
     @BeforeEach
     void init() {
-        initMocks(this);
+        openMocks(this);
     }
 
     @Test
@@ -59,8 +59,8 @@ public class IncidentsResourceTest {
     void testIncidentById() {
 
         JsonObject incident = new JsonObject().put("id", "incident1")
-                .put("lat", "30.12345")
-                .put("lon", "-70.98765")
+                .put("lat", 30.12345)
+                .put("lon", -70.98765)
                 .put("medicalNeeded", true)
                 .put("numberOfPeople", 3)
                 .put("victimName", "John Doe")
@@ -109,8 +109,8 @@ public class IncidentsResourceTest {
     void testIncidents() {
 
         JsonObject incident = new JsonObject().put("id", "incident1")
-                .put("lat", "30.12345")
-                .put("lon", "-70.98765")
+                .put("lat", 30.12345)
+                .put("lon", -70.98765)
                 .put("medicalNeeded", true)
                 .put("numberOfPeople", 3)
                 .put("victimName", "John Doe")
@@ -162,8 +162,8 @@ public class IncidentsResourceTest {
     void testIncidentsByStatus() {
 
         JsonObject incident = new JsonObject().put("id", "incident1")
-                .put("lat", "30.12345")
-                .put("lon", "-70.98765")
+                .put("lat", 30.12345)
+                .put("lon", -70.98765)
                 .put("medicalNeeded", true)
                 .put("numberOfPeople", 3)
                 .put("victimName", "John Doe")
@@ -215,8 +215,8 @@ public class IncidentsResourceTest {
     void testIncidentsByName() {
 
         JsonObject incident = new JsonObject().put("id", "incident1")
-                .put("lat", "30.12345")
-                .put("lon", "-70.98765")
+                .put("lat", 30.12345)
+                .put("lon", -70.98765)
                 .put("medicalNeeded", true)
                 .put("numberOfPeople", 3)
                 .put("victimName", "John Doe")

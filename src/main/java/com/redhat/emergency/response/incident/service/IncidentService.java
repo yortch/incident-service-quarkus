@@ -6,12 +6,16 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 
-import com.redhat.emergency.response.incident.repository.IncidentRepository;
 import com.redhat.emergency.response.incident.entity.Incident;
 import com.redhat.emergency.response.incident.model.IncidentStatus;
+import com.redhat.emergency.response.incident.repository.IncidentRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
+import io.quarkus.runtime.StartupEvent;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
@@ -25,20 +29,48 @@ public class IncidentService {
     @Inject
     IncidentRepository repository;
 
+    @Inject
+    MeterRegistry meterRegistry;
+
+    private Timer createTimer;
+
+    private Timer updateTimer;
+
+    void onStart(@Observes StartupEvent e) {
+        String name = "incident.service.data.access";
+        createTimer = Timer.builder(name).tag("operation", "create").register(meterRegistry);
+        updateTimer = Timer.builder(name).tag("operation", "update").register(meterRegistry);
+    }
+
     @Transactional
     public JsonArray incidents() {
         return new JsonArray(repository.findAll().stream().map(this::fromEntity).collect(Collectors.toList()));
     }
 
-    @Transactional
     public JsonObject create(JsonObject incident) {
-        Incident created = repository.create(toEntity(incident));
-
-        return fromEntity(created);
+        try {
+            return createTimer.recordCallable(() -> doCreate(incident));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Transactional
+    public JsonObject doCreate(JsonObject incident) {
+        Incident created = repository.create(toEntity(incident));
+        return fromEntity(created);
+    }
+
     public JsonObject updateIncident(JsonObject incident) {
+        try {
+            return updateTimer.recordCallable(() -> doUpdateIncident(incident));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Transactional
+    public JsonObject doUpdateIncident(JsonObject incident) {
         Incident current = repository.findByIncidentId(incident.getString("id"));
         if (current == null) {
             log.warn("Incident with id '" + incident.getString("id") + "' not found in the database");
@@ -93,8 +125,8 @@ public class IncidentService {
             return null;
         }
         return new JsonObject().put("id", r.getIncidentId())
-                .put("lat", r.getLatitude())
-                .put("lon", r.getLongitude())
+                .put("lat", new BigDecimal(r.getLatitude()).doubleValue())
+                .put("lon", new BigDecimal(r.getLongitude()).doubleValue())
                 .put("medicalNeeded", r.isMedicalNeeded())
                 .put("numberOfPeople", r.getNumberOfPeople())
                 .put("victimName", r.getVictimName())

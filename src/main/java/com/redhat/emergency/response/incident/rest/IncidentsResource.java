@@ -27,7 +27,7 @@ public class IncidentsResource {
     public Uni<Response> incidents() {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidents");
         return bus.<JsonObject>request("incident-service", new JsonObject(), options)
-                .onItem().apply(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
+                .onItem().transform(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
     }
 
     @POST
@@ -36,7 +36,7 @@ public class IncidentsResource {
     public Uni<Response> createIncident(String incident) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "createIncident");
         return bus.<JsonObject>request("incident-service", new JsonObject(incident), options)
-                .onItem().apply(msg -> Response.status(200).build());
+                .onItem().transform(msg -> Response.status(200).build());
     }
 
     @GET
@@ -45,7 +45,7 @@ public class IncidentsResource {
     public Uni<Response> incidentsByStatus(@PathParam("status") String status) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidentsByStatus");
         return bus.<JsonObject>request("incident-service", new JsonObject().put("status", status), options)
-                .onItem().apply(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
+                .onItem().transform(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
     }
 
     @GET
@@ -53,8 +53,8 @@ public class IncidentsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Uni<Response> incidentById(@PathParam("id") String incidentId) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidentById");
-        return bus.<JsonObject>request("incident-service",  new JsonObject().put("incidentId", incidentId), options)
-                .onItem().apply(msg -> {
+        return bus.<JsonObject>request("incident-service", new JsonObject().put("incidentId", incidentId), options)
+                .onItem().transform(msg -> {
                     JsonObject incident = msg.body().getJsonObject("incident");
                     if (incident == null) {
                         return Response.status(404).build();
@@ -70,7 +70,7 @@ public class IncidentsResource {
     public Uni<Response> incidentsByName(@PathParam("name") String name) {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "incidentsByName");
         return bus.<JsonObject>request("incident-service", new JsonObject().put("name", name), options)
-                .onItem().apply(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
+                .onItem().transform(msg -> Response.ok(msg.body().getJsonArray("incidents").encode()).build());
     }
 
     @POST
@@ -78,7 +78,7 @@ public class IncidentsResource {
     public Uni<Response> reset() {
         DeliveryOptions options = new DeliveryOptions().addHeader("action", "reset");
         return bus.<JsonObject>request("incident-service", new JsonObject(), options)
-                .onItem().apply(msg -> Response.ok().build());
+                .onItem().transform(msg -> Response.ok().build());
     }
 
 }

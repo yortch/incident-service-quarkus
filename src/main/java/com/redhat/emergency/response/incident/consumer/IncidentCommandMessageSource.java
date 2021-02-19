@@ -1,6 +1,6 @@
 package com.redhat.emergency.response.incident.consumer;
 
-import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -8,17 +8,17 @@ import java.util.concurrent.CompletionStage;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-import com.redhat.emergency.response.incident.message.IncidentEvent;
-import com.redhat.emergency.response.incident.message.Message;
 import com.redhat.emergency.response.incident.service.IncidentService;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.operators.multi.processors.UnicastProcessor;
+import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.kafka.IncomingKafkaRecord;
 import io.smallrye.reactive.messaging.kafka.KafkaRecord;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import org.eclipse.microprofile.reactive.messaging.Acknowledgment;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.eclipse.microprofile.reactive.messaging.Outgoing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ public class IncidentCommandMessageSource {
 
         return CompletableFuture.supplyAsync(() -> {
             try {
-                acceptMessageType(message.getPayload()).ifPresent(this::processUpdateIncidentCommand);
+                acceptMessageType(message).ifPresent(this::processUpdateIncidentCommand);
             } catch (Exception e) {
                 log.error("Error processing msg " + message.getPayload(), e);
             }
@@ -50,53 +50,55 @@ public class IncidentCommandMessageSource {
         });
     }
 
-    @SuppressWarnings("unchecked")
     private void processUpdateIncidentCommand(JsonObject json) {
 
-        JsonObject body = json.getJsonObject("body").getJsonObject("incident");
-        log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + body.getString("id") + "'");
-        JsonObject updated = incidentService.updateIncident(body);
+        JsonObject incident = json.getJsonObject("incident");
+        log.debug("Processing '" + UPDATE_INCIDENT_COMMAND + "' message for incident '" + incident.getString("id") + "'");
+        JsonObject updated = incidentService.updateIncident(incident);
         processor.onNext(updated);
     }
 
-    private Optional<JsonObject> acceptMessageType(String messageAsJson) {
+    private Optional<JsonObject> acceptMessageType(IncomingKafkaRecord<String, String> message) {
         try {
-            JsonObject json = new JsonObject(messageAsJson);
-            String messageType = json.getString("messageType");
-            if (Arrays.asList(ACCEPTED_MESSAGE_TYPES).contains(messageType)) {
-                if (json.containsKey("body") && json.getJsonObject("body").containsKey("incident")) {
-                    return Optional.of(json);
-                }
+            Optional<IncomingCloudEventMetadata> metadata = message.getMetadata(IncomingCloudEventMetadata.class);
+            if (metadata.isEmpty()) {
+                log.warn("Incoming message is not a CloudEvent");
+                return Optional.empty();
             }
-            log.debug("Message with type '" + messageType + "' is ignored");
+            IncomingCloudEventMetadata<String> cloudEventMetadata = metadata.get();
+            String dataContentType = cloudEventMetadata.getDataContentType().orElse("");
+            if (!dataContentType.equalsIgnoreCase("application/json")) {
+                log.warn("CloudEvent data content type is not specified or not 'application/json'. Message is ignored");
+                return Optional.empty();
+            }
+            String type = cloudEventMetadata.getType();
+            if (!(Arrays.asList(ACCEPTED_MESSAGE_TYPES).contains(type))) {
+                log.debug("CloudEvent with type '" + type + "' is ignored");
+                return Optional.empty();
+            }
+            JsonObject json = new JsonObject(message.getPayload());
+            if (json.containsKey("incident")) {
+                return Optional.of(json);
+            } else {
+                log.warn("Message payload does not contain incident: " + message.getPayload());
+                return Optional.empty();
+            }
         } catch (Exception e) {
-            log.warn("Unexpected message which is not JSON or without 'messageType' field.");
-            log.warn("Message: " + messageAsJson);
+            log.warn("Unexpected message is ignored: " + message.getPayload());
+            return Optional.empty();
         }
-        return Optional.empty();
+
     }
 
     @Outgoing("incident-event")
-    public Multi<org.eclipse.microprofile.reactive.messaging.Message<String>> source() {
-        return processor.onItem().apply(this::toMessage);
+    public Multi<Message<String>> source() {
+        return processor.onItem().transform(this::toMessage);
     }
 
-    private org.eclipse.microprofile.reactive.messaging.Message<String> toMessage(JsonObject incident) {
-        Message<IncidentEvent> message = new Message.Builder<>("IncidentUpdatedEvent", "IncidentService",
-                new IncidentEvent.Builder(incident.getString("id"))
-                        .lat(new BigDecimal(incident.getString("lat")))
-                        .lon(new BigDecimal(incident.getString("lon")))
-                        .medicalNeeded(incident.getBoolean("medicalNeeded"))
-                        .numberOfPeople(incident.getInteger("numberOfPeople"))
-                        .timestamp(incident.getLong("timestamp"))
-                        .victimName(incident.getString("victimName"))
-                        .victimPhoneNumber(incident.getString("victimPhoneNumber"))
-                        .status(incident.getString("status"))
-                        .build())
-                .build();
-        String json = Json.encode(message);
-        log.debug("Message: " + json);
-        return KafkaRecord.of(incident.getString("id"), json);
+    private Message<String> toMessage(JsonObject incident) {
+        log.debug("IncidentUpdatedEvent: " + incident.toString());
+        return KafkaRecord.of(incident.getString("id"), incident.toString())
+                .addMetadata(OutgoingCloudEventMetadata.builder().withType("IncidentUpdatedEvent")
+                        .withTimestamp(OffsetDateTime.now().toZonedDateTime()).build());
     }
-
 }
