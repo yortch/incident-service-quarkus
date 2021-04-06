@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import javax.inject.Inject;
@@ -128,7 +129,8 @@ public class IncidentRepositoryTest {
         assertThat(matched.getLongitude(), equalTo(incident1.getLongitude()));
         assertThat(matched.getNumberOfPeople(), equalTo(incident1.getNumberOfPeople()));
         assertThat(matched.isMedicalNeeded(), equalTo(incident1.isMedicalNeeded()));
-        assertThat(matched.getReportedTime(), equalTo(incident1.getReportedTime()));
+        assertThat(matched.getReportedTime().truncatedTo(ChronoUnit.MILLIS),
+                equalTo(incident1.getReportedTime().truncatedTo(ChronoUnit.MILLIS)));
         assertThat(matched.getStatus(), equalTo(incident1.getStatus()));
     }
 
@@ -211,7 +213,8 @@ public class IncidentRepositoryTest {
         assertThat(found.getLongitude(), equalTo(incident2.getLongitude()));
         assertThat(found.getNumberOfPeople(), equalTo(incident2.getNumberOfPeople()));
         assertThat(found.isMedicalNeeded(), equalTo(incident2.isMedicalNeeded()));
-        assertThat(found.getReportedTime(), equalTo(incident2.getReportedTime()));
+        assertThat(found.getReportedTime().truncatedTo(ChronoUnit.MILLIS),
+                equalTo(incident2.getReportedTime().truncatedTo(ChronoUnit.MILLIS)));
         assertThat(found.getStatus(), equalTo(incident2.getStatus()));
     }
 
@@ -329,7 +332,8 @@ public class IncidentRepositoryTest {
         assertThat(found.getLongitude(), equalTo(incident2.getLongitude()));
         assertThat(found.getNumberOfPeople(), equalTo(incident2.getNumberOfPeople()));
         assertThat(found.isMedicalNeeded(), equalTo(incident2.isMedicalNeeded()));
-        assertThat(found.getReportedTime(), equalTo(incident2.getReportedTime()));
+        assertThat(found.getReportedTime().truncatedTo(ChronoUnit.MILLIS),
+                equalTo(incident2.getReportedTime().truncatedTo(ChronoUnit.MILLIS)));
         assertThat(found.getStatus(), equalTo(incident2.getStatus()));
     }
 
@@ -449,7 +453,8 @@ public class IncidentRepositoryTest {
         assertThat(matched.getLongitude(), equalTo(incident2.getLongitude()));
         assertThat(matched.getNumberOfPeople(), equalTo(incident2.getNumberOfPeople()));
         assertThat(matched.isMedicalNeeded(), equalTo(incident2.isMedicalNeeded()));
-        assertThat(matched.getReportedTime(), equalTo(incident2.getReportedTime()));
+        assertThat(matched.getReportedTime().truncatedTo(ChronoUnit.MILLIS),
+                equalTo(incident2.getReportedTime().truncatedTo(ChronoUnit.MILLIS)));
         assertThat(matched.getStatus(), equalTo(incident2.getStatus()));
     }
 
